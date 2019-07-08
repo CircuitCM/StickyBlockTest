@@ -47,40 +47,41 @@ public class Main extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void blockFallUpdate(EntityChangeBlockEvent e){
+    public void blockFallUpdate(EntityChangeBlockEvent e) {
         if ((e.getEntityType() == EntityType.FALLING_BLOCK)) {
             bUC(e.getBlock());
         }
     }
 
     @EventHandler
-    public void blockBreak(BlockBreakEvent e){
+    public void blockBreak(BlockBreakEvent e) {
         Block b = e.getBlock();
-        bUC(b);
+        breakChecks(b);
     }
 
     @EventHandler
-    public void onRightClick(PlayerInteractEvent e){
+    public void onRightClick(PlayerInteractEvent e) {
         Action a = e.getAction();
-        if (a.equals(Action.RIGHT_CLICK_BLOCK)){
+        if (a.equals(Action.RIGHT_CLICK_BLOCK)) {
             Location l = e.getClickedBlock().getLocation();
             e.getPlayer().sendMessage(ChatColor.GREEN + " " + sV.get(l));
         }
     }
 
     @Deprecated
-    public int getMin(int a, int b, int c, int d){
+    public int getMin(int a, int b, int c, int d) {
         int min = -1;
-        int[] ints = {a,b,c,d};
+        int[] ints = {a, b, c, d};
 
         for (int e : ints) {
             if (e > min) min = e;
         }
         return min;
     }
-    public int getMax(int a, int b, int c, int d, int f, int g){
+
+    public int getMax(int a, int b, int c, int d, int f, int g) {
         int max = -1;
-        int[] ints = {a,b,c,d,f,g};
+        int[] ints = {a, b, c, d, f, g};
 
         for (int e : ints) {
             if (e > max) max = e;
@@ -88,72 +89,144 @@ public class Main extends JavaPlugin implements Listener {
         return max;
     }
 
-    public int getsV(Location l){
-        if(sV.containsKey(l)){
+    public int getsV(Location l) {
+        if (sV.containsKey(l)) {
             return sV.get(l);
-        }else{
+        } else {
             return 0;
         }
     }
 
     @SuppressWarnings("deprecation")
-    public void collapse(Block b, Location l, Location yneg){
+    public void collapse(Block b, Location l, Location yneg) {
         //sV.remove(l);
         getServer().getWorld("world").getBlockAt(l).setType(Material.AIR);
         getServer().getWorld("world").spawnFallingBlock(yneg, b.getType(), b.getData());
         Bukkit.broadcastMessage("block is falling");
     }
 
-    public boolean breakChecks(Block b){
+    public void breakChecks(Block b) {
         Location l = b.getLocation();
         Location ypos = l.clone().add(0, 1, 0);
         Bukkit.broadcastMessage(ypos.toString());
         Location yneg = l.clone().add(0, -1, 0);
         Bukkit.broadcastMessage(yneg.toString());
-        Location xpos = l.clone().add(1,0,0);
-        Location xneg = l.clone().add(-1,0,0);
-        Location zpos = l.clone().add(0,0,1);
-        Location zneg = l.clone().add(0,0,-1);
+        Location xpos = l.clone().add(1, 0, 0);
+        Location xneg = l.clone().add(-1, 0, 0);
+        Location zpos = l.clone().add(0, 0, 1);
+        Location zneg = l.clone().add(0, 0, -1);
         int bi = sV.get(l);
         if (!sV.containsKey(yneg) && !sV.containsKey(ypos)) {
+            sV.remove(l);
+            if(!b.getType().equals(Material.AIR)){
+                collapse(b,l,yneg);
+            }
+//            if (b.getRelative(0, -1, 0).getType().equals(Material.AIR)) {
+//                collapse(b,l,yneg);
+//            }
+            int xpi = getsV(xpos);
+            int xni = getsV(xneg);
+            int zpi = getsV(zpos);
+            int zni = getsV(zneg);
+            Bukkit.broadcastMessage("setting correct value to broken block " + bi);
+            Block bxp = b.getRelative(1, 0, 0);
+            Block bxn = b.getRelative(-1, 0, 0);
+            Block bzp = b.getRelative(0, 0, 1);
+            Block bzn = b.getRelative(0, 0, -1);
+
+            if (sV.containsKey(xpos) && bi>xpi) {
+                bUC(bxp);
+            }
+            if (sV.containsKey(xneg)) {
+                bUC(bxn);
+            }
+            if (sV.containsKey(zpos)) {
+                bUC(bzp);
+            }
+            if (sV.containsKey(zneg)) {
+                bUC(bzn);
+            }
+        }
+        if (sV.containsKey(yneg) && sV.containsKey(ypos)) {
+            sV.remove(l);
+//            if (b.getRelative(0, -1, 0).getType().equals(Material.AIR)) {
+//                collapse(b,l,yneg);
+//            }
+            Bukkit.broadcastMessage("setting correct value to broken block " + bi);
+            Block bxp = b.getRelative(1, 0, 0);
+            Block bxn = b.getRelative(-1, 0, 0);
+            Block bzp = b.getRelative(0, 0, 1);
+            Block bzn = b.getRelative(0, 0, -1);
+            Block byp = b.getRelative(0,1,0);
+
+            breakChecks(byp);
+            if (sV.containsKey(xpos)) {
+                bUC(bxp);
+            }
+            if (sV.containsKey(xneg)) {
+                bUC(bxn);
+            }
+            if (sV.containsKey(zpos)) {
+                bUC(bzp);
+            }
+            if (sV.containsKey(zneg)) {
+                bUC(bzn);
+            }
+        }
+        if (!sV.containsKey(yneg) && sV.containsKey(ypos)) {
             sV.remove(l);
             if (b.getRelative(0, -1, 0).getType().equals(Material.AIR)) {
                 collapse(b,l,yneg);
             }
-                int xpi = getsV(xpos);
-                int xni = getsV(xneg);
-                int zpi = getsV(zpos);
-                int zni = getsV(zneg);
-                int largestRel = getMax(xpi-1,xni-1,zpi-1,zni-1,0,0);
-                Bukkit.broadcastMessage("no solid block underneath");
-                sV.put(l,largestRel);
-                Bukkit.broadcastMessage("setting correct value to placed block " + bi);
-                Block bxp = b.getRelative(1,0,0);
-                Block bxn = b.getRelative(-1,0,0);
-                Block bzp = b.getRelative(0,0,1);
-                Block bzn = b.getRelative(0,0,-1);
+            Bukkit.broadcastMessage("setting correct value to broken block " + bi);
+            Block bxp = b.getRelative(1, 0, 0);
+            Block bxn = b.getRelative(-1, 0, 0);
+            Block bzp = b.getRelative(0, 0, 1);
+            Block bzn = b.getRelative(0, 0, -1);
+            Block byp = b.getRelative(0,1,0);
 
-                if (bi < 1) {
-                    sV.remove(l);
-                    getServer().getWorld("world").getBlockAt(l).setType(Material.AIR);
-                    getServer().getWorld("world").spawnFallingBlock(yneg, m, b.getData());
-                    Bukkit.broadcastMessage("block is falling");
-                }
-                if (sV.containsKey(xpos) && bi > xpi+1) {
-                    bUC(bxp);
-                }
-                if (sV.containsKey(xneg) && bi > xni+1) {
-                    bUC(bxn);
-                }
-                if (sV.containsKey(zpos) && bi > zpi+1) {
-                    bUC(bzp);
-                }
-                if (sV.containsKey(zneg) && bi > zni+1) {
-                    bUC(bzn);
-                }
+            breakChecks(byp);
+            if (sV.containsKey(xpos)) {
+                bUC(bxp);
+            }
+            if (sV.containsKey(xneg)) {
+                bUC(bxn);
+            }
+            if (sV.containsKey(zpos)) {
+                bUC(bzp);
+            }
+            if (sV.containsKey(zneg)) {
+                bUC(bzn);
+            }
+        }
+        if (sV.containsKey(yneg) && !sV.containsKey(ypos)) {
+            sV.remove(l);
+            if (b.getRelative(0, -1, 0).getType().equals(Material.AIR)) {
+                collapse(b,l,yneg);
+            }
+            Bukkit.broadcastMessage("setting correct value to broken block " + bi);
+            Block bxp = b.getRelative(1, 0, 0);
+            Block bxn = b.getRelative(-1, 0, 0);
+            Block bzp = b.getRelative(0, 0, 1);
+            Block bzn = b.getRelative(0, 0, -1);
+            //Block byp = b.getRelative(0,1,0);
+
+            if (sV.containsKey(xpos)) {
+                bUC(bxp);
+            }
+            if (sV.containsKey(xneg)) {
+                bUC(bxn);
+            }
+            if (sV.containsKey(zpos)) {
+                bUC(bzp);
+            }
+            if (sV.containsKey(zneg)) {
+                bUC(bzn);
+            }
         }
 
     }
+
     @SuppressWarnings("deprecation")
     public void bUC(Block b) {
         Location l = b.getLocation();
