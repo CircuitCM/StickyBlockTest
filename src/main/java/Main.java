@@ -1,3 +1,4 @@
+import javafx.scene.chart.PieChart;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -12,13 +13,14 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.xml.crypto.Data;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Type;
+import java.util.*;
 
 
 //put yml and maybe other things into resources
@@ -38,7 +40,6 @@ public class Main extends JavaPlugin implements Listener {
 
     }
 
-
     @EventHandler
     public void blockPlaceUpdate(BlockPlaceEvent e) {
 
@@ -48,14 +49,21 @@ public class Main extends JavaPlugin implements Listener {
 
     @EventHandler
     public void blockFallUpdate(EntityChangeBlockEvent e) {
+
         if ((e.getEntityType() == EntityType.FALLING_BLOCK)) {
-            bUC(e.getBlock());
+            Block b = e.getBlock();
+            Material m = b.getType();
+            if(m.equals(Material.COBBLESTONE)||m.equals(Material.ENDER_STONE)) {
+                b.getDrops().clear();
+            }
+            bUC(b);
         }
     }
 
     @EventHandler
-    public void blockBreak(BlockBreakEvent e) {
+    public void blockBreakUpdate(BlockBreakEvent e) {
         Block b = e.getBlock();
+        b.setType(Material.AIR);
         breakChecks(b);
     }
 
@@ -64,7 +72,7 @@ public class Main extends JavaPlugin implements Listener {
         Action a = e.getAction();
         if (a.equals(Action.RIGHT_CLICK_BLOCK)) {
             Location l = e.getClickedBlock().getLocation();
-            e.getPlayer().sendMessage(ChatColor.GREEN + " " + sV.get(l));
+            e.getPlayer().sendMessage(ChatColor.GREEN + "Sticky value: " + sV.get(l));
         }
     }
 
@@ -100,9 +108,64 @@ public class Main extends JavaPlugin implements Listener {
     @SuppressWarnings("deprecation")
     public void collapse(Block b, Location l, Location yneg) {
         //sV.remove(l);
+        Material m = b.getType();
+        byte d = b.getData();
         getServer().getWorld("world").getBlockAt(l).setType(Material.AIR);
-        getServer().getWorld("world").spawnFallingBlock(yneg, b.getType(), b.getData());
+        getServer().getWorld("world").spawnFallingBlock(yneg, m, d);
         Bukkit.broadcastMessage("block is falling");
+    }
+
+    public void horizontalBreakCaller(int xpi,int xni,int zpi,int zni,int bi, Location l,Location xpos,Location xneg,Location zpos,Location zneg, Block b){
+        Block bxp = b.getRelative(1, 0, 0);
+        Block bxn = b.getRelative(-1, 0, 0);
+        Block bzp = b.getRelative(0, 0, 1);
+        Block bzn = b.getRelative(0, 0, -1);
+
+//        if(!sV.containsKey(l)) {
+//            if (b.getType() != Material.AIR) {
+//                Location ll = l.clone().add(0, -0.6, 0);
+//                collapse(b, l, ll);
+//            }
+//        }
+
+        if(sV.containsKey(xpos) && bi<=xpi){
+            sV.put(l,1);
+            bUC(bxp);
+        }else if(sV.containsKey(xpos) && bi>xpi) {
+            sV.put(l,1);
+            breakChecks(bxp);
+        }
+
+        if(sV.containsKey(xneg) && bi<=xni){
+            sV.put(l,1);
+            bUC(bxn);
+        }else if(sV.containsKey(xneg) && bi>xni) {
+            sV.put(l,1);
+            breakChecks(bxn);
+        }
+
+        if(sV.containsKey(zpos) && bi<=zpi){
+            sV.put(l,1);
+            bUC(bzp);
+        }else if(sV.containsKey(zpos) && bi>zpi) {
+            sV.put(l,1);
+            breakChecks(bzp);
+        }
+
+        if(sV.containsKey(zneg) && bi<=zni){
+            sV.put(l,1);
+            bUC(bzn);
+        }else if(sV.containsKey(zneg) && bi>zni) {
+            sV.put(l,1);
+            breakChecks(bzn);
+        }
+        if(sV.get(l)>1) {
+            sV.remove(l);
+            if (b.getType() != Material.AIR) {
+                Location ll = l.clone().add(0, -0.6, 0);
+                collapse(b, l, ll);
+            }
+        }
     }
 
     public void breakChecks(Block b) {
@@ -117,114 +180,85 @@ public class Main extends JavaPlugin implements Listener {
         Location zneg = l.clone().add(0, 0, -1);
         int bi = sV.get(l);
         if (!sV.containsKey(yneg) && !sV.containsKey(ypos)) {
-            sV.remove(l);
-            if(!b.getType().equals(Material.AIR)){
-                collapse(b,l,yneg);
-            }
-//            if (b.getRelative(0, -1, 0).getType().equals(Material.AIR)) {
-//                collapse(b,l,yneg);
-//            }
+            //sV.remove(l);
             int xpi = getsV(xpos);
             int xni = getsV(xneg);
             int zpi = getsV(zpos);
             int zni = getsV(zneg);
             Bukkit.broadcastMessage("setting correct value to broken block " + bi);
-            Block bxp = b.getRelative(1, 0, 0);
-            Block bxn = b.getRelative(-1, 0, 0);
-            Block bzp = b.getRelative(0, 0, 1);
-            Block bzn = b.getRelative(0, 0, -1);
 
-            if (sV.containsKey(xpos) && bi>xpi) {
-                bUC(bxp);
-            }
-            if (sV.containsKey(xneg)) {
-                bUC(bxn);
-            }
-            if (sV.containsKey(zpos)) {
-                bUC(bzp);
-            }
-            if (sV.containsKey(zneg)) {
-                bUC(bzn);
-            }
-        }
-        if (sV.containsKey(yneg) && sV.containsKey(ypos)) {
-            sV.remove(l);
-//            if (b.getRelative(0, -1, 0).getType().equals(Material.AIR)) {
+//            if(b.getType()!=Material.AIR){
 //                collapse(b,l,yneg);
 //            }
+            horizontalBreakCaller(xpi,xni,zpi,zni,bi,l,xpos,xneg,zpos,zneg,b);
+        }
+        if (sV.containsKey(yneg) && sV.containsKey(ypos)) {
+            //sV.remove(l);
+            int xpi = getsV(xpos);
+            int xni = getsV(xneg);
+            int zpi = getsV(zpos);
+            int zni = getsV(zneg);
             Bukkit.broadcastMessage("setting correct value to broken block " + bi);
-            Block bxp = b.getRelative(1, 0, 0);
-            Block bxn = b.getRelative(-1, 0, 0);
-            Block bzp = b.getRelative(0, 0, 1);
-            Block bzn = b.getRelative(0, 0, -1);
             Block byp = b.getRelative(0,1,0);
+            Block byn = b.getRelative(0,-1,0);
 
+//            if (b.getType()!=Material.AIR) {
+//                collapse(b,l,yneg);
+//            }
+
+            horizontalBreakCaller(xpi,xni,zpi,zni,bi,l,xpos,xneg,zpos,zneg,b);
+
+            if (b.getType()!=Material.AIR) {
+                if(bi<6) {
+                    breakChecks(byn);
+                }
+            }
             breakChecks(byp);
-            if (sV.containsKey(xpos)) {
-                bUC(bxp);
-            }
-            if (sV.containsKey(xneg)) {
-                bUC(bxn);
-            }
-            if (sV.containsKey(zpos)) {
-                bUC(bzp);
-            }
-            if (sV.containsKey(zneg)) {
-                bUC(bzn);
-            }
         }
         if (!sV.containsKey(yneg) && sV.containsKey(ypos)) {
-            sV.remove(l);
-            if (b.getRelative(0, -1, 0).getType().equals(Material.AIR)) {
-                collapse(b,l,yneg);
-            }
+            //sV.remove(l);
+            int xpi = getsV(xpos);
+            int xni = getsV(xneg);
+            int zpi = getsV(zpos);
+            int zni = getsV(zneg);
             Bukkit.broadcastMessage("setting correct value to broken block " + bi);
-            Block bxp = b.getRelative(1, 0, 0);
-            Block bxn = b.getRelative(-1, 0, 0);
-            Block bzp = b.getRelative(0, 0, 1);
-            Block bzn = b.getRelative(0, 0, -1);
             Block byp = b.getRelative(0,1,0);
+            Block byn = b.getRelative(0,-1,0);
 
+//            if (b.getType()!=Material.AIR) {
+//                collapse(b,l,yneg);
+//            }
+
+            horizontalBreakCaller(xpi,xni,zpi,zni,bi,l,xpos,xneg,zpos,zneg,b);
+
+            if (b.getType()!=Material.AIR) {
+                if(bi<6) {
+                    breakChecks(byn);
+                }
+            }
             breakChecks(byp);
-            if (sV.containsKey(xpos)) {
-                bUC(bxp);
-            }
-            if (sV.containsKey(xneg)) {
-                bUC(bxn);
-            }
-            if (sV.containsKey(zpos)) {
-                bUC(bzp);
-            }
-            if (sV.containsKey(zneg)) {
-                bUC(bzn);
-            }
         }
         if (sV.containsKey(yneg) && !sV.containsKey(ypos)) {
-            sV.remove(l);
-            if (b.getRelative(0, -1, 0).getType().equals(Material.AIR)) {
-                collapse(b,l,yneg);
-            }
+            //sV.remove(l);
+            int xpi = getsV(xpos);
+            int xni = getsV(xneg);
+            int zpi = getsV(zpos);
+            int zni = getsV(zneg);
             Bukkit.broadcastMessage("setting correct value to broken block " + bi);
-            Block bxp = b.getRelative(1, 0, 0);
-            Block bxn = b.getRelative(-1, 0, 0);
-            Block bzp = b.getRelative(0, 0, 1);
-            Block bzn = b.getRelative(0, 0, -1);
-            //Block byp = b.getRelative(0,1,0);
+            Block byn = b.getRelative(0,-1,0);
 
-            if (sV.containsKey(xpos)) {
-                bUC(bxp);
+            if (b.getType()!=Material.AIR) {
+                if(bi<6) {
+                    breakChecks(byn);
+                }
             }
-            if (sV.containsKey(xneg)) {
-                bUC(bxn);
-            }
-            if (sV.containsKey(zpos)) {
-                bUC(bzp);
-            }
-            if (sV.containsKey(zneg)) {
-                bUC(bzn);
-            }
+
+            horizontalBreakCaller(xpi,xni,zpi,zni,bi,l,xpos,xneg,zpos,zneg,b);
+
+//            if (b.getType()!=Material.AIR) {
+//                collapse(b,l,yneg);
+//            }
         }
-
     }
 
     @SuppressWarnings("deprecation")
