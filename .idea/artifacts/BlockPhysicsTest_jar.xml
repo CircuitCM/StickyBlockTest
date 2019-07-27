@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="BlockPhysicsTest:jar">
+    <output-path>$PROJECT_DIR$/../../spigot-1.8.8 Test/plugins</output-path>
+    <root id="archive" name="BlockPhysicsTest.jar">
+      <element id="module-output" name="StickyBlockTest" />
+    </root>
+  </artifact>
+</component>

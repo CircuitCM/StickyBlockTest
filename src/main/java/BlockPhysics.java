@@ -3,6 +3,7 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
@@ -34,6 +35,8 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
     String world = "world";
     World thisworld = Bukkit.getWorld(world);
+    private int spawn_min = -15;
+    private int spawn_max = 15;
 
 
     //used to sort which blocks should be made to fall first, needed to avoid entities breaking other blocks queried to fall
@@ -126,7 +129,6 @@ public class BlockPhysics extends JavaPlugin implements Listener {
             }
         }
         this.saveConfig();
-        this.reloadConfig();
     }
 
     /*
@@ -139,29 +141,53 @@ public class BlockPhysics extends JavaPlugin implements Listener {
     public void blockPlaceUpdate(BlockPlaceEvent e) {
 
         Block b = e.getBlock();
-        blockPlacePhysics(b.getLocation());
+        Location l = b.getLocation();
+        Material m = b.getType();
+        Player p = e.getPlayer();
+
+        if(!p.isOp()&& m!=Material.SIGN &&spawn_min<=l.getX()&&spawn_max>=l.getX()
+            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
+            e.setCancelled(true);
+        }
+        if(!e.isCancelled()) {
+            blockPlacePhysics(l);
+        }
     }
 
 
     @EventHandler
     public void blockFallUpdate(EntityChangeBlockEvent e) {
+        Location l = e.getBlock().getLocation();
 
-        if ((e.getEntityType() == EntityType.FALLING_BLOCK)) {
-            Block b = e.getBlock();
-            Material m = b.getType();
-            if(m.equals(Material.COBBLESTONE)||m.equals(Material.ENDER_STONE)) {
-                b.getDrops().clear();
+        if(spawn_min<=l.getX()&&spawn_max>=l.getX()
+            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
+            e.setCancelled(true);
+        }
+        if(!e.isCancelled()) {
+            if ((e.getEntityType() == EntityType.FALLING_BLOCK)) {
+                Block b = e.getBlock();
+                Material m = b.getType();
+                if (m.equals(Material.COBBLESTONE) || m.equals(Material.ENDER_STONE)) {
+                    b.getDrops().clear();
+                }
+                bUC(l);
             }
-            bUC(b.getLocation());
         }
     }
 
     @EventHandler
     public void blockBreakUpdate(BlockBreakEvent e) {
-        Block b = e.getBlock();
-        //needed to stop the block broken by the player from spawning a block
-        b.setType(Material.AIR);
-        blockBreakPhysics(b.getLocation());
+        Location l = e.getBlock().getLocation();
+        Player p = e.getPlayer();
+
+        if(!p.isOp()&&spawn_min<=l.getX()&&spawn_max>=l.getX()
+            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
+            e.setCancelled(true);
+        }
+        if(!e.isCancelled()) {
+            Block b = e.getBlock();
+            blockBreakPhysics(b.getLocation());
+        }
     }
 
     @EventHandler
@@ -212,8 +238,8 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
     public void blockBreakPhysics(Location l){
         breakChecks(l);
-        queryFall.remove(l);
         structureUpdate();
+        queryFall.remove(l);
         Collections.sort(queryFall, yc);
         collapse();
     }
@@ -269,6 +295,7 @@ public class BlockPhysics extends JavaPlugin implements Listener {
         int zpi = getsV(zpos);
         int zni = getsV(zneg);
 
+        if(sV.get(l)==null) return;
         int bi = sV.get(l);
         sV.remove(l);
         queryFall.add(l);
