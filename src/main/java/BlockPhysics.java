@@ -55,20 +55,21 @@ public class BlockPhysics extends JavaPlugin implements Listener {
         this.al = new ArrayList[range_value];
         this.queryFall = new ArrayList<>();
         this.sV = new HashMap<>();
-        this.saveDefaultConfig();
+        saveDefaultConfig();
 
 
-        loadSV();
         setAl();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "\nBlockPhysicsTest Initialized");
         stuffSchedule10min();
+        aSyncLoad();
 
     }
+
     //to set arraylists before use
-    public void setAl(){
-        for (int i = 0; i<range_value; i++) {
-            al[i]=new ArrayList<>();
+    public void setAl() {
+        for (int i = 0; i < range_value; i++) {
+            al[i] = new ArrayList<>();
         }
     }
 
@@ -80,55 +81,65 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        saveBlocks(this.getConfig());
+        saveBlocks();
     }
 
-    public void stuffSchedule10min(){
+    public void stuffSchedule10min() {
 
-        final Configuration g = this.getConfig();
-        new BukkitRunnable(){
+        //final Configuration g = this.getConfig();
+        new BukkitRunnable() {
 
             @Override
             public void run() {
-                saveBlocks(g);
+                saveBlocks();
             }
-        }.runTaskTimerAsynchronously(this, 200, 12000);
+        }.runTaskTimerAsynchronously(this, 400, 12000);
+    }
+
+    public void aSyncLoad() {
+
+        new BukkitRunnable() {
+
+            @Override
+            public void run() {
+                loadSV();
+            }
+        }.runTaskAsynchronously(this);
     }
 
     public void loadSV(){
-        ConfigurationSection f = this.getConfig().getConfigurationSection("blocks");
+        ConfigurationSection f = getConfig().getConfigurationSection("blocks");
         if(f==null) {
-            Bukkit.broadcastMessage(ChatColor.GRAY + "[No block values to load]");
+            Bukkit.broadcastMessage(ChatColor.GRAY+"\n[No block values to load]");
             return;
         }
         for(String s: f.getKeys(false)){
             String[] st = s.split("I");
             int i = f.getInt(s);
-            sV.put(new Location(thisworld,Double.parseDouble(st[0]),Double.parseDouble(st[1]),Double.parseDouble(st[2])), i);
+            sV.put(new Location(getServer().getWorld("world"),Double.parseDouble(st[0]),Double.parseDouble(st[1]),Double.parseDouble(st[2])), i);
+            Bukkit.broadcastMessage("Loading"+s);
         }
 
     }
 
-    public void saveBlocks(final Configuration g){
-        ConfigurationSection f = g.getConfigurationSection("blocks");
+    public void saveBlocks(){
+
+        ConfigurationSection f = getConfig().getConfigurationSection("blocks");
+        if(f!=null) {
+            f.getKeys(false).clear();
+        }
         if(!sV.isEmpty()) {
             for (Location l : sV.keySet()) {
                 int i = sV.get(l);
-                g.set("blocks."+l.getBlockX()+"I"+l.getBlockY()+"I"+l.getBlockZ(), i);
+                getConfig().set("blocks."+l.getBlockX()+"I"+l.getBlockY()+"I"+l.getBlockZ(), i);
+                Bukkit.broadcastMessage("Saving"+l.getX()+l.getY()+l.getZ());
             }
         }else{
             Bukkit.broadcastMessage(ChatColor.GRAY+"[No block values to save]");
         }
-
-        Bukkit.broadcastMessage(ChatColor.GRAY+"[Saving new block values]");
-        if(f==null) return;
-        for(String s: f.getKeys(false)){
-            String[] st = s.split("I");
-            if(!sV.containsKey(new Location(thisworld,Double.parseDouble(st[0]),Double.parseDouble(st[1]),Double.parseDouble(st[2])))){
-                g.set("blocks."+s,null);
-            }
-        }
         this.saveConfig();
+        Bukkit.broadcastMessage(ChatColor.GRAY+"[Saved new block values]");
+
     }
 
     /*
