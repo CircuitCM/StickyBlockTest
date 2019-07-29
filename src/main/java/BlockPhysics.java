@@ -8,10 +8,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.henrya.pingapi.PingAPI;
 
 import java.util.*;
 
@@ -27,6 +27,7 @@ Additionally it all happens within a single mc tick, maybe split it up into 1 or
 public class BlockPhysics extends JavaPlugin implements Listener {
 
     private Map<Location, Integer> sV; //block or rather location values
+    //private Material[] banned_blocks; for later
 
     private ArrayList<Location>[] al; //blocks that should be reupdated ordered by priority, after a block break event
     private List<Location> queryFall; //blocks added to the query during the the reupdate of values, called to fall after reupdate completion
@@ -156,8 +157,8 @@ public class BlockPhysics extends JavaPlugin implements Listener {
         Material m = b.getType();
         Player p = e.getPlayer();
 
-        if(!p.isOp()&& m!=Material.SIGN &&spawn_min<=l.getX()&&spawn_max>=l.getX()
-            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
+        if(!p.isOp()&&(m!=Material.SIGN &&spawn_min<=l.getX()&&spawn_max>=l.getX()
+            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ())||m.equals(Material.BEDROCK)){
             e.setCancelled(true);
         }
         if(!e.isCancelled()) {
@@ -188,17 +189,22 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
     @EventHandler
     public void blockBreakUpdate(BlockBreakEvent e) {
+        Block b = e.getBlock();
         Location l = e.getBlock().getLocation();
         Player p = e.getPlayer();
 
-        if(!p.isOp()&&spawn_min<=l.getX()&&spawn_max>=l.getX()
-            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
+        if(!p.isOp()&&(spawn_min<=l.getX()&&spawn_max>=l.getX()
+            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ())||b.getType().equals(Material.BEDROCK)){
             e.setCancelled(true);
         }
         if(!e.isCancelled()) {
-            Block b = e.getBlock();
             blockBreakPhysics(b.getLocation());
         }
+    }
+
+    @EventHandler
+    public void explodeCancel(EntityExplodeEvent e){
+        e.setCancelled(true);
     }
 
     @EventHandler
