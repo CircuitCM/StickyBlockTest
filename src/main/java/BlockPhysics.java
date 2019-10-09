@@ -154,27 +154,21 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
         Block b = e.getBlock();
         Location l = b.getLocation();
-        Material m = b.getType();
-        Player p = e.getPlayer();
+        Bukkit.broadcastMessage("heh " + l);
+        if(sV.containsKey(l)){
+            Bukkit.broadcastMessage("yes");
+        }
 
-        if(!p.isOp()&&(m!=Material.SIGN &&spawn_min<=l.getX()&&spawn_max>=l.getX()
-            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ())||m.equals(Material.BEDROCK)){
-            e.setCancelled(true);
-        }
-        if(!e.isCancelled()) {
-            blockPlacePhysics(l);
-        }
+        blockPlacePhysics(l);
+
     }
+
 
 
     @EventHandler
     public void blockFallUpdate(EntityChangeBlockEvent e) {
         Location l = e.getBlock().getLocation();
 
-        if(spawn_min<=l.getX()&&spawn_max>=l.getX()
-            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
-            e.setCancelled(true);
-        }
         if(!e.isCancelled()) {
             if ((e.getEntityType() == EntityType.FALLING_BLOCK)) {
                 Block b = e.getBlock();
@@ -190,16 +184,10 @@ public class BlockPhysics extends JavaPlugin implements Listener {
     @EventHandler
     public void blockBreakUpdate(BlockBreakEvent e) {
         Block b = e.getBlock();
-        Location l = e.getBlock().getLocation();
-        Player p = e.getPlayer();
+//        sV.remove(b.getLocation());
+        blockBreakPhysics(b.getLocation());
 
-        if(!p.isOp()&&(spawn_min<=l.getX()&&spawn_max>=l.getX()
-            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ())||b.getType().equals(Material.BEDROCK)){
-            e.setCancelled(true);
-        }
-        if(!e.isCancelled()) {
-            blockBreakPhysics(b.getLocation());
-        }
+
     }
 
     @EventHandler
@@ -256,8 +244,8 @@ public class BlockPhysics extends JavaPlugin implements Listener {
     public void blockBreakPhysics(Location l){
         breakChecks(l);
         structureUpdate();
-        queryFall.remove(l);
         Collections.sort(queryFall, yc);
+        queryFall.remove(l);
         collapse();
     }
 
@@ -290,7 +278,9 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
     public void structureUpdate(){
         for (int i = 0; i <range_value; i++) {
+            Bukkit.broadcastMessage("Updating... " +i );
             for(Location o :al[i]){
+                Bukkit.broadcastMessage("hstuff" + o);
                 bUC(o);
             }
             al[i].clear();
@@ -312,8 +302,9 @@ public class BlockPhysics extends JavaPlugin implements Listener {
         int zpi = getsV(zpos);
         int zni = getsV(zneg);
 
+        Bukkit.broadcastMessage("i " +sV.get(l));
         if(sV.get(l)==null) return;
-        int bi = sV.get(l);
+        int bi = getsV(l);
         sV.remove(l);
         queryFall.add(l);
 
@@ -351,13 +342,20 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
     @SuppressWarnings("deprecation")
     public void bUC(Location l) {
+        Material ar = Material.AIR;
+
+        if(getServer().getWorld(world).getBlockAt(l).getType()==ar){
+            Bukkit.broadcastMessage("this is air I shouldn't be buccing this");
+//            return;
+        }
 
         Location ypos = l.clone().add(0, 1, 0);
         Location yneg = l.clone().add(0, -1, 0);
-        Material ar = Material.AIR;
+
 
         Material ympos = getServer().getWorld(world).getBlockAt(ypos).getType();
         Material ymneg = getServer().getWorld(world).getBlockAt(yneg).getType();
+
 
         if(!sV.containsKey(yneg)&&!ymneg.equals(ar)&&!ymneg.equals(Material.WATER)&&!ymneg.equals(Material.LAVA)){
             for (int yPoint = -4; yPoint <= 0; yPoint++) {
@@ -366,8 +364,8 @@ public class BlockPhysics extends JavaPlugin implements Listener {
                     if(ympos!=ar) {
                         bUC(ypos);
                     }
-                    //Bukkit.broadcastMessage(ChatColor.GREEN+"Bedrock within 4 blocks below\n" +
-                        //"setting base value");
+                    Bukkit.broadcastMessage(ChatColor.GREEN+"Bedrock within 4 blocks below\n" +
+                        "setting base value");
                     return;
                 }
             }
