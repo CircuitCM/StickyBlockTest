@@ -1,17 +1,17 @@
+import Events.StickyPhysicsEvents;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.henrya.pingapi.PingAPI;
 
 import java.util.*;
 
@@ -34,9 +34,7 @@ public class BlockPhysics extends JavaPlugin implements Listener {
     private final int range_value = 10; //current range, increasing doesn't break the world, decreasing might
 
     String world = "world";
-    World thisworld = Bukkit.getWorld(world);
-    private int spawn_min = -15;
-    private int spawn_max = 15;
+
 
 
     //used to sort which blocks should be made to fall first, needed to avoid entities breaking other blocks queried to fall
@@ -60,6 +58,7 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
         setAl();
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getPluginManager().registerEvents(new EventConstructor(), this);
         getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "\nBlockPhysicsTest Initialized");
         stuffSchedule10min();
         aSyncLoad();
@@ -148,21 +147,14 @@ public class BlockPhysics extends JavaPlugin implements Listener {
 
     */
 
+
     @EventHandler
     public void blockPlaceUpdate(BlockPlaceEvent e) {
 
         Block b = e.getBlock();
         Location l = b.getLocation();
-        Material m = b.getType();
-        Player p = e.getPlayer();
 
-        if(!p.isOp()&& m!=Material.SIGN &&spawn_min<=l.getX()&&spawn_max>=l.getX()
-            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
-            e.setCancelled(true);
-        }
-        if(!e.isCancelled()) {
-            blockPlacePhysics(l);
-        }
+        blockPlacePhysics(l);
     }
 
 
@@ -170,35 +162,26 @@ public class BlockPhysics extends JavaPlugin implements Listener {
     public void blockFallUpdate(EntityChangeBlockEvent e) {
         Location l = e.getBlock().getLocation();
 
-        if(spawn_min<=l.getX()&&spawn_max>=l.getX()
-            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
-            e.setCancelled(true);
-        }
-        if(!e.isCancelled()) {
-            if ((e.getEntityType() == EntityType.FALLING_BLOCK)) {
-                Block b = e.getBlock();
-                Material m = b.getType();
-                if (m.equals(Material.COBBLESTONE) || m.equals(Material.ENDER_STONE)) {
-                    b.getDrops().clear();
-                }
-                bUC(l);
+        if ((e.getEntityType() == EntityType.FALLING_BLOCK)) {
+            Block b = e.getBlock();
+            Material m = b.getType();
+            if (m.equals(Material.COBBLESTONE) || m.equals(Material.ENDER_STONE)) {
+                b.getDrops().clear();
             }
+            bUC(l);
         }
     }
 
     @EventHandler
     public void blockBreakUpdate(BlockBreakEvent e) {
         Location l = e.getBlock().getLocation();
-        Player p = e.getPlayer();
 
-        if(!p.isOp()&&spawn_min<=l.getX()&&spawn_max>=l.getX()
-            &&spawn_min<=l.getZ()&&spawn_max>=l.getZ()){
-            e.setCancelled(true);
-        }
-        if(!e.isCancelled()) {
-            Block b = e.getBlock();
-            blockBreakPhysics(b.getLocation());
-        }
+        Block b = e.getBlock();
+        Collection<ItemStack> d = b.getDrops();
+        b.setType(Material.AIR);
+        for(ItemStack ds : d) Bukkit.getServer().getWorld(world).dropItemNaturally(l,ds);
+        blockBreakPhysics(b.getLocation());
+
     }
 
     @EventHandler
@@ -250,7 +233,7 @@ public class BlockPhysics extends JavaPlugin implements Listener {
     public void blockBreakPhysics(Location l){
         breakChecks(l);
         structureUpdate();
-        queryFall.remove(l);
+//        queryFall.remove(l);
         Collections.sort(queryFall, yc);
         collapse();
     }
@@ -312,33 +295,42 @@ public class BlockPhysics extends JavaPlugin implements Listener {
         queryFall.add(l);
 
         if(sV.containsKey(yneg) && bi>0) {
+            Bukkit.broadcastMessage("Negative breakcheck activated");
             breakChecks(yneg);
         }
         if(sV.containsKey(ypos)){
             breakChecks(ypos);
         }
         if(sV.containsKey(xpos) && bi<xpi) {
+            Bukkit.broadcastMessage("xpos more");
             breakChecks(xpos);
         }
         if(sV.containsKey(xpos) && bi>=xpi){
+            Bukkit.broadcastMessage("xpos less");
             al[sV.get(xpos)].add(xpos);
         }
         if(sV.containsKey(xneg) && bi<xni) {
+            Bukkit.broadcastMessage("xneg more");
             breakChecks(xneg);
         }
         if(sV.containsKey(xneg) && bi>=xni){
+            Bukkit.broadcastMessage("xneg less");
             al[sV.get(xneg)].add(xneg);
         }
         if(sV.containsKey(zpos) && bi<zpi) {
+            Bukkit.broadcastMessage("zpos more");
             breakChecks(zpos);
         }
         if(sV.containsKey(zpos) && bi>=zpi){
+            Bukkit.broadcastMessage("zpos less");
             al[sV.get(zpos)].add(zpos);
         }
         if(sV.containsKey(zneg) && bi<zni) {
+            Bukkit.broadcastMessage("zneg more");
             breakChecks(zneg);
         }
         if(sV.containsKey(zneg) && bi>=zni){
+            Bukkit.broadcastMessage("zneg less");
             al[sV.get(zneg)].add(zneg);
         }
     }
