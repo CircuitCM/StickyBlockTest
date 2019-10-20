@@ -9,13 +9,14 @@ import static org.bukkit.Bukkit.getServer;
 public class PlaceUpdate {
 
     private ValueStorage vs;
-    private Mathz mt = vs.mt;
+    private Mathz mt;
     private WorldInteraction wi;
     private Material ar = Material.AIR;
 
     public PlaceUpdate(ValueStorage vs, WorldInteraction wi){
         this.vs= vs;
         this.wi= wi;
+        mt=vs.mt;
 
     }
 

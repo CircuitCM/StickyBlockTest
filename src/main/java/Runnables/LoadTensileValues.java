@@ -6,12 +6,12 @@ import org.bukkit.configuration.Configuration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-public class SaveTensileValues extends BukkitRunnable {
+public class LoadTensileValues extends BukkitRunnable {
 
     private final JavaPlugin plugin;
     private MethodInitializer m;
 
-    public SaveTensileValues(JavaPlugin plugin, MethodInitializer mi) {
+    public LoadTensileValues(JavaPlugin plugin, MethodInitializer mi) {
         this.plugin = plugin;
         m= mi;
     }
@@ -20,8 +20,8 @@ public class SaveTensileValues extends BukkitRunnable {
     @Override
     public void run() {
         final Configuration c = plugin.getConfig();
-        m.saveConfig(c);
-        Bukkit.broadcastMessage("Updating Config with new values");
+        m.loadConfig(c);
+        Bukkit.broadcastMessage("Loading Block data");
 
     }
 

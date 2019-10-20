@@ -18,7 +18,11 @@ public class BlockBreak implements Listener {
     public void blockBreak(BlockBreakEvent e){
 
         Block block = e.getBlock();
-        m.breakPatch(block);
-        m.breakPhysics(block);
+        if(m.hasHealth(block)){
+            e.setCancelled(true);
+        }else {
+            m.breakPatch(block);
+            m.breakPhysics(block);
+        }
     }
 }

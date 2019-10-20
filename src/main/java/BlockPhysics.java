@@ -1,21 +1,10 @@
-import Events.StickyPhysicsEvents;
 import org.bukkit.*;
-import org.bukkit.block.Block;
-import org.bukkit.configuration.Configuration;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.EntityType;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.*;
-import org.bukkit.event.entity.EntityChangeBlockEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.*;
 
-//todo: less code somehow, split into classes for easier implementation of new/custom features, async calculations?
+//todo: less code somehow (done), split into classes for easier implementation of new/custom features (donish), async calculations? (yeeaaah...)
+//todo: pt2,
 
 /* notes, runs on spigot 1.8.8 but will probably work in 1.7 to 1.13? untested.
 The logic and checks are run ontop of the minecraft server runtime,
@@ -26,51 +15,41 @@ Additionally it all happens within a single mc tick, maybe split it up into 1 or
  */
 public class BlockPhysics extends JavaPlugin implements Listener {
 
-    private Map<Location, Integer> sV; //block or rather location values
+    private final CoreConstructor cC;
 
-    private ArrayList<Location>[] al; //blocks that should be reupdated ordered by priority, after a block break event
-    private List<Location> queryFall; //blocks added to the query during the the reupdate of values, called to fall after reupdate completion
-    private YLocComparator yc = new YLocComparator();
-    private final int range_value = 10; //current range, increasing doesn't break the world, decreasing might
-
-    String world = "world";
-
-
-
-    //used to sort which blocks should be made to fall first, needed to avoid entities breaking other blocks queried to fall
-    class YLocComparator implements Comparator<Location> {
-        @Override
-        public int compare(Location loc1, Location loc2) {
-            return Double.compare(loc1.getY(), loc2.getY());
-        }
+    public BlockPhysics() {
+        cC = new CoreConstructor(this);
     }
 
-
-    /* used to call bukkit where it registers code that modifies/manipulates the server*/
     @Override
     public void onEnable() {
-        //these need to be called here as instances to work properly
-        this.al = new ArrayList[range_value];
-        this.queryFall = new ArrayList<>();
-        this.sV = new HashMap<>();
-        saveDefaultConfig();
 
+        this.saveDefaultConfig();
 
-        setAl();
-        getServer().getPluginManager().registerEvents(this, this);
-        getServer().getPluginManager().registerEvents(new EventConstructor(), this);
+//        cC.ltv.runTaskAsynchronously(this);
+
+        getServer().getPluginManager().registerEvents(cC.bb, this);
+        getServer().getPluginManager().registerEvents(cC.bp, this);
+        getServer().getPluginManager().registerEvents(cC.bf, this);
+        getServer().getPluginManager().registerEvents(cC.bp, this);
+        getServer().getPluginManager().registerEvents(cC.pi, this);
+
+//        cC.stv.runTaskTimerAsynchronously(this,300,1200);
+
         getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "\nBlockPhysicsTest Initialized");
         stuffSchedule10min();
         aSyncLoad();
 
     }
 
-    //to set arraylists before use
-    public void setAl() {
-        for (int i = 0; i < range_value; i++) {
-            al[i] = new ArrayList<>();
-        }
+    @Override
+    public void onDisable(){
+
+//        cC.saveForDisableLol(this.getConfig());
+
     }
+
+}
 
     /*
 

@@ -29,7 +29,7 @@ public class BreakUpdate {
         int zpi = vs.getOrMax(zpos);
         int zni = vs.getOrMax(zneg);
 
-        if(vs.contains(l)) return;
+        if(!vs.contains(l)) return;
         int bi = vs.get(l);
         vs.del(l);
         vs.addFall(l);

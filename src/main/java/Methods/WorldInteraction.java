@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Collection;
@@ -24,12 +25,13 @@ public class WorldInteraction {
     }
 
     @SuppressWarnings("deprecation")
-    public void dropBlock(Location l) {
+    public FallingBlock dropBlock(Location l) {
             Block b = l.getBlock();
             Material m = b.getType();
             byte d = b.getData();
             getServer().getWorld(w).getBlockAt(l).setType(Material.AIR);
-            getServer().getWorld(w).spawnFallingBlock(l.subtract(0,1,0), m, d);
+            return getServer().getWorld(w).spawnFallingBlock(l.subtract(0,1,0), m, d);
+
     }
 
     public Material material(Location l) {

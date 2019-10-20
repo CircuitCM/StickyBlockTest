@@ -1,7 +1,10 @@
 package Storage;
 
 import Methods.Mathz;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.entity.FallingBlock;
 
 import java.util.*;
 
@@ -11,7 +14,10 @@ public class ValueStorage {
     public String wrl = "world";
     public Mathz mt = new Mathz();
 
+
     private Map<Location, Integer> tensileValues = new HashMap<>();
+    private Map<Location, Integer> healthValues = new HashMap<>();
+    private Map<FallingBlock, Integer> healthTransfer = new HashMap<>();
     public ArrayList<Location>[] placeUpdate = new ArrayList[range_value]; //blocks that should be reupdated ordered by priority, after a block break event
     private List<Location> queryFall = new ArrayList<>();
 
@@ -29,6 +35,10 @@ public class ValueStorage {
     public void addUpdate(int i, Location l){
         placeUpdate[i].add(l);
     }
+
+
+    /* QueryFall: */
+
 
     public List<Location> getFalls(){
         return queryFall;
@@ -54,6 +64,9 @@ public class ValueStorage {
     public void sortFall(){
         Collections.sort(queryFall, mt.yc);
     }
+
+
+    /* Tensile Values: */
 
 
     public boolean contains(Location l){
@@ -90,6 +103,55 @@ public class ValueStorage {
 
     public void del(Location l){
         tensileValues.remove(l);
+    }
+
+
+    /* Health Values */
+
+    public boolean containsHealth(Location l){
+        return healthValues.containsKey(l);
+    }
+
+    public void putHealth(Location l, Material m){
+        if(m==Material.COBBLESTONE) {
+            healthValues.put(l, 10);
+        }
+    }
+    public void putHealth(Location l, int i){
+        healthValues.put(l, i);
+
+    }
+
+    public int getHealth(Location l){
+        return healthValues.get(l);
+    }
+
+    public void delHealth(Location l){
+        Bukkit.broadcastMessage("health key delete called");
+        healthValues.remove(l);
+    }
+
+    public void damage(Location l, int i){
+        healthValues.put(l,healthValues.get(l)-i);
+    }
+
+
+    /* Health Transfer: */
+
+    public boolean containsHTransfer(FallingBlock l){
+        return healthTransfer.containsKey(l);
+    }
+
+    public void putHTransfer(FallingBlock l, int i){
+            healthTransfer.put(l, i);
+    }
+
+    public int getHTransfer(FallingBlock l){
+        return healthTransfer.get(l);
+    }
+
+    public void delHTransfer(FallingBlock l){
+        healthTransfer.remove(l);
     }
 
 

@@ -3,6 +3,7 @@ import Events.BlockFall;
 import Events.BlockPlace;
 import Events.PlayerInteract;
 import Methods.MethodInitializer;
+import Runnables.LoadTensileValues;
 import Runnables.SaveTensileValues;
 import Storage.InstanceConstructor;
 import jdk.nashorn.internal.ir.Block;
@@ -24,6 +25,7 @@ public class CoreConstructor {
     BlockFall bf;
     PlayerInteract pi;
     SaveTensileValues stv;
+    LoadTensileValues ltv;
 
 
     public CoreConstructor(BlockPhysics p){
@@ -36,14 +38,16 @@ public class CoreConstructor {
         bb= new BlockBreak(mi);
         bp= new BlockPlace(mi);
         bf= new BlockFall(mi);
-        pi= new PlayerInteract();
+        pi= new PlayerInteract(mi);
         /* Runnables*/
+        ltv= new LoadTensileValues(plugin, mi);
         stv= new SaveTensileValues(plugin, mi);
 
     }
 
     public void saveForDisableLol(Configuration c){
         mi.saveConfig(c);
+        plugin.saveConfig();
     }
 
 
