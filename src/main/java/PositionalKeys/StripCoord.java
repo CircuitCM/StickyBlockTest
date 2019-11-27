@@ -1,18 +1,20 @@
 package PositionalKeys;
 
-public final class StripCoord extends ChunkLocalCoord {
+public final class StripCoord {
 
-    StripCoord(byte x1, byte z1) {
-        super(x1, z1);
+    public final byte hash;
+
+    StripCoord(byte h) {
+        hash=h;
     }
 
     @Override
     public int hashCode() {
-        return 0;
+        return hash;
     }
 
     @Override
     public boolean equals(Object o) {
-        return false;
+        return o instanceof StripCoord && ((StripCoord) o).hash == this.hash;
     }
 }

@@ -1,3 +1,4 @@
+import Factories.HyperScheduler;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -21,7 +22,7 @@ public class BlockPhysics extends JavaPlugin {
         getServer().getPluginManager().registerEvents(cC.ee, this);
 
         getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "\nBlockPhysicsTest Initialized");
-
+        HyperScheduler.init();
     }
 
     @Override

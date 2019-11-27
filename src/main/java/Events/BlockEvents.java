@@ -1,5 +1,6 @@
 package Events;
 
+import Factories.HyperScheduler;
 import Methods.MethodInitializer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
@@ -10,8 +11,6 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import static org.bukkit.Bukkit.getScheduler;
 
 public class BlockEvents implements Listener {
 
@@ -28,29 +27,29 @@ public class BlockEvents implements Listener {
 
         Block block = e.getBlock();
         if(m.hasHealth(block)){
-            getScheduler().runTaskAsynchronously(p,() -> m.addHealth(block,-1));
+            HyperScheduler.Sync_AsyncExecutor.runTask(() -> m.addHealth(block,-1));
             e.setCancelled(true);
         }else {
-            getScheduler().runTaskAsynchronously(p, () -> m.breakPhysics(block));
+            HyperScheduler.blockEventExecutor.runTask( () -> m.breakPhysics(block));
         }
     }
 
     @EventHandler
     public void FallingBlockSpawn(FallingBlockSpawnEvent e){
 
-        getScheduler().runTaskAsynchronously(p, () -> m.setFallingBlockData(e.getFallingBlocks(), e.getLocations()));
+        HyperScheduler.fallBlockBuilder.runTask(() -> m.setFallingBlockData(e.getFallingBlocks(), e.getLocations()));
     }
 
     @EventHandler
     public void blockFall(EntityChangeBlockEvent e){
 
-        getScheduler().runTaskAsynchronously(p, () -> asyncBF(e));
+        HyperScheduler.fallBlockBuilder.runTask(() -> asyncBF(e));
     }
 
     @EventHandler
     public void blockPlace(BlockPlaceEvent e){
 
-        getScheduler().runTaskAsynchronously(p, () -> m.placePhysics(e.getBlock()));
+        HyperScheduler.blockEventExecutor.runTask(() -> m.placePhysics(e.getBlock()));
     }
 
     public void asyncBF(EntityChangeBlockEvent e){

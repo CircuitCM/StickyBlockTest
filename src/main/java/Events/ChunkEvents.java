@@ -1,5 +1,6 @@
 package Events;
 
+import Factories.HyperScheduler;
 import Methods.MethodInitializer;
 import Storage.ChunkDataSerialization;
 import Storage.ChunkLocation;
@@ -11,7 +12,6 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import static Enums.Coords.CHUNK;
-import static org.bukkit.Bukkit.getScheduler;
 
 public class ChunkEvents implements Listener {
 
@@ -31,15 +31,12 @@ public class ChunkEvents implements Listener {
 
     @EventHandler
     private void chunkUnload(ChunkUnloadEvent e){
-        getScheduler().runTaskAsynchronously(p, () -> unloadChunk(e));
+        HyperScheduler.chunkEventExecutor.runTask(() -> unloadChunk(e));
     }
 
     @EventHandler
     private void chunkLoad(ChunkLoadEvent e){
-
-        getScheduler().runTaskLaterAsynchronously(p, () -> loadChunk(e), 2);
-        //When loading new chunks it's possible the chunk won't completely load in all the data in time for the scheduler, in that case run it a tick delayed
-        // it came down to that lol
+        HyperScheduler.chunkEventExecutor.runTask(() -> loadChunk(e));
     }
 
     private void loadChunk(ChunkLoadEvent e){

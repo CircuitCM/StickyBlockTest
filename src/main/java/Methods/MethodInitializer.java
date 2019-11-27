@@ -1,6 +1,7 @@
 package Methods;
 
 import Enums.Coords;
+import Factories.HyperScheduler;
 import Factories.MemoryFactory;
 import Storage.ChunkLocation;
 import Storage.ValueStorage;
@@ -31,10 +32,10 @@ public class MethodInitializer {
 
     }
 
-    private void postBreakUpdate(Queue<Location>[] placeUpdate, Set<Location> fallQuery){
+    private void postBreakUpdate(Location l, Queue<Location>[] placeUpdate, Set<Location> fallQuery){
         for (int i = 0; i <placeUpdate.length; i++) {
             while(!placeUpdate[i].isEmpty()){
-                pu.placeChecks(placeUpdate[i].poll(),fallQuery);
+                pu.placeChecks(l,placeUpdate[i].poll(),fallQuery);
             }
         }
     }
@@ -85,7 +86,8 @@ public class MethodInitializer {
             Queue<Location>[] placeUpdate = MemoryFactory.newUpdateQuery();
             HashSet<Location> fallQuery = (HashSet<Location>) MemoryFactory.newFallQuery();
             bu.breakChecks(l,placeUpdate, fallQuery);
-            postBreakUpdate(placeUpdate, fallQuery);
+            vs.del(l);
+            postBreakUpdate(l,placeUpdate, fallQuery);
             fallQuery.remove(l);
             if(fallQuery.size()>0) {
                 ArrayList<Location> sortedLowestYQuery = new ArrayList<>(fallQuery);
@@ -99,7 +101,7 @@ public class MethodInitializer {
         Location l = b.getLocation();
         vs.putHealth(l,b.getType());
         HashSet<Location> fallQuery = (HashSet<Location>) MemoryFactory.newFallQuery();
-        pu.placeChecks(l,fallQuery);
+        pu.placeChecks(null,l,fallQuery);
         if(fallQuery.size()>0){
             ArrayList<Location> sortedLowestYQuery = new ArrayList<>(fallQuery);
             sortedLowestYQuery.sort(yLocComp);
@@ -113,7 +115,7 @@ public class MethodInitializer {
             vs.putHealth(l, vs.getHTransfer(fb));
             vs.delHTransfer(fb);
         }
-        pu.placeChecksFall(l);
+        HyperScheduler.fallBlockBuilder.runTask(() ->pu.placeChecksFall(l));
     }
 
     public void placePhysicsChunk(Chunk c){

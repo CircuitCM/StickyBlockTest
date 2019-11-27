@@ -24,7 +24,7 @@ public class PlaceUpdate {
     }
 
     @SuppressWarnings("deprecation")
-    public void placeChecks(Location l1, Set<Location> fallQuery) {
+    public void placeChecks(Location li,Location l1, Set<Location> fallQuery) {
 
         Queue<Location> locquery = new LinkedList<>();
         Set<Location> queued = new HashSet<>();
@@ -45,7 +45,7 @@ public class PlaceUpdate {
                 is[i] = vs.getOrMax(ls[i]);
 
                 ms[i] = !(queued.contains(ls[i])||
-                    ls[i].getBlock().getType() == ar);
+                    ls[i].getBlock().getType() == ar||ls[i]==li);
             }
 
             int a = Mathz.lowestTensile(is);

@@ -1,25 +1,20 @@
 package PositionalKeys;
 
-public final class FastCoordLocal extends ChunkLocalCoord{
+public final class FastCoordLocal{
 
-    private final byte y;
+    public final short hash;
 
-    FastCoordLocal(byte xl, byte yl, byte zl) {
-        super(xl, zl);
-        y=yl;
-    }
-
-    public byte getY(){
-        return y;
+    public FastCoordLocal(short hash) {
+        this.hash = hash;
     }
 
     @Override
     public int hashCode() {
-        return 0;
+        return hash;
     }
 
     @Override
     public boolean equals(Object o) {
-        return false;
+        return o instanceof FastCoordLocal && ((FastCoordLocal) o).hash == this.hash;
     }
 }

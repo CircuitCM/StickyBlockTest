@@ -16,7 +16,6 @@ import static Enums.Coords.CHUNK;
 public class ValueStorage {
 
     public final int range_value = MemoryFactory.range_value;
-    public String wrl = "world";
 
     private Map<ChunkLocation, ChunkValues> chunkValues = new ConcurrentHashMap<>();
     private Map<FallingBlock, Integer> healthTransfer = new ConcurrentHashMap<>(16,0.75f,4);
@@ -58,7 +57,6 @@ public class ValueStorage {
     public void appendChunks(Map<ChunkLocation,ChunkValues> load){
         chunkValues.putAll(load);
     }
-
 
     /* Tensile Values: */
 
