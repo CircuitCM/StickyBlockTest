@@ -1,9 +1,9 @@
 package PositionalKeys;
 
-abstract class KeyCoord {
+interface KeyCoord {
 
-    public abstract int hashCode();
+    int hashCode();
 
-    public abstract boolean equals(Object o);
+    boolean equals(Object o);
 
 }

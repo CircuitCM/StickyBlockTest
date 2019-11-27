@@ -1,7 +1,6 @@
 package Methods;
 
 import Enums.Coords;
-import Factories.HyperScheduler;
 import Factories.MemoryFactory;
 import Storage.ChunkLocation;
 import Storage.ValueStorage;
@@ -115,7 +114,7 @@ public class MethodInitializer {
             vs.putHealth(l, vs.getHTransfer(fb));
             vs.delHTransfer(fb);
         }
-        HyperScheduler.fallBlockBuilder.runTask(() ->pu.placeChecksFall(l));
+        pu.placeChecksFall(l);
     }
 
     public void placePhysicsChunk(Chunk c){

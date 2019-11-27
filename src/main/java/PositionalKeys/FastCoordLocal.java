@@ -1,5 +1,7 @@
 package PositionalKeys;
 
+import java.util.Objects;
+
 public final class FastCoordLocal{
 
     public final short hash;
@@ -10,7 +12,7 @@ public final class FastCoordLocal{
 
     @Override
     public int hashCode() {
-        return hash;
+        return Objects.hash(hash);
     }
 
     @Override

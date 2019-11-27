@@ -30,7 +30,7 @@ public class BlockEvents implements Listener {
             HyperScheduler.Sync_AsyncExecutor.runTask(() -> m.addHealth(block,-1));
             e.setCancelled(true);
         }else {
-            HyperScheduler.blockEventExecutor.runTask( () -> m.breakPhysics(block));
+            HyperScheduler.blockEventExecutor.runTask(() -> m.breakPhysics(block));
         }
     }
 

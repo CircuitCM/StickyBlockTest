@@ -1,18 +1,8 @@
 package PositionalKeys;
 
-public final class RegionCoord extends BoundingCoord {
+public final class RegionCoord extends BoundCoord {
 
-    RegionCoord(short x8, short z8) {
+    RegionCoord(int x8, int z8) {
         super(x8, z8);
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return false;
     }
 }

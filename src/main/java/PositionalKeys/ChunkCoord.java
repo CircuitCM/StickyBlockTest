@@ -1,18 +1,8 @@
 package PositionalKeys;
 
-public final class ChunkCoord extends BoundingCoord {
+public final class ChunkCoord extends BoundCoord {
 
-    ChunkCoord(short x4, short z4) {
-        super(x4, z4);
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return false;
+    ChunkCoord(int x4, int z4) {
+        super(x4,z4);
     }
 }

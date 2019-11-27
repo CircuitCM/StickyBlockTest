@@ -37,8 +37,8 @@ public class BreakUpdate {
             Boolean[] ms = new Boolean[ls.length];
 
             for (int i = 0; i < ls.length; i++) {
-                ms[i] = !(queued.contains(ls[i])||
-                    vs.contains(ls[i]));
+                ms[i] = !(queued.contains(ls[i])&&
+                    !vs.contains(ls[i]));
             }
 
             int a = vs.get(l);

@@ -2,10 +2,8 @@ import Events.BlockEvents;
 import Events.ChunkEvents;
 import Events.EntityEvents;
 import Methods.MethodInitializer;
-import Storage.ChunkDataSerialization;
 import Storage.InstanceConstructor;
 import Storage.KryoChunkData;
-import Storage.YamlConstructor;
 
 public class CoreConstructor {
 
@@ -15,7 +13,6 @@ public class CoreConstructor {
     InstanceConstructor ic;
     KryoChunkData kd;
     MethodInitializer mi;
-    ChunkDataSerialization cs;
 
 
     /*Event Instances:*/
@@ -27,13 +24,12 @@ public class CoreConstructor {
     public CoreConstructor(BlockPhysics p){
 
         plugin= p;
-        ic= new InstanceConstructor(plugin,new YamlConstructor(plugin));
+        ic= new InstanceConstructor(plugin);
         mi= ic.getMethods();
-        cs= ic.getChunkSerializer();
         kd= ic.getKryoChunkSerializer();
         /* Events Construction: */
         be= new BlockEvents(mi,plugin);
-        ce= new ChunkEvents(mi,cs,kd,plugin);
+        ce= new ChunkEvents(mi,kd);
         ee= new EntityEvents(mi,plugin);
 
     }
