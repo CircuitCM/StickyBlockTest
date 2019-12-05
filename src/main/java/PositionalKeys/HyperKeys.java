@@ -2,7 +2,7 @@ package PositionalKeys;
 
 public class HyperKeys {
 
-    public final static FastCoordLocal[][][] localCoord = new FastCoordLocal[256][16][16];
+    public final static LocalCoord[][][] localCoord = new LocalCoord[256][16][16];
     public final static StripCoord[][] stripLocal = new StripCoord[16][16];
 
     static{
@@ -18,7 +18,7 @@ public class HyperKeys {
                 int yxl= yl|xl;
                 int z=0b0;
                 while (z<=0b1111) {
-                    localCoord[y][x][z] = new FastCoordLocal((short)(yxl|z));
+                    localCoord[y][x][z] = new LocalCoord((short)(yxl|z));
                     ++z;
                 }
                 ++x;

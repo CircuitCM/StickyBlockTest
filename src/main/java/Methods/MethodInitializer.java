@@ -2,7 +2,9 @@ package Methods;
 
 import Enums.Coords;
 import Factories.MemoryFactory;
+import PositionalKeys.ChunkCoord;
 import Storage.ChunkLocation;
+import Storage.ChunkValues;
 import Storage.ValueStorage;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -22,13 +24,21 @@ public class MethodInitializer {
     private PlaceUpdate pu;
     private BreakUpdate bu;
     private BedrockCheck bc;
+    private ChunkValues[][] cv = new ChunkValues[7][7];
 
     public MethodInitializer(ValueStorage vs){
         this.vs = vs;
-        pu= new PlaceUpdate(vs);
-        bu= new BreakUpdate(vs);
+        pu= new PlaceUpdate(vs,cv);
+        bu= new BreakUpdate(vs,cv);
         bc= new BedrockCheck();
+    }
 
+    private void whipeValueArray(){
+        for(byte i=0;i<cv.length;i++){
+            for(byte l=0;l<cv[i].length;l++){
+                cv[i][l] = null;
+            }
+        }
     }
 
     private void postBreakUpdate(Location l, Queue<Location>[] placeUpdate, Set<Location> fallQuery){

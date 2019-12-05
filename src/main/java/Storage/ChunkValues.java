@@ -1,14 +1,18 @@
 package Storage;
 
-import PositionalKeys.FastCoordLocal;
+import PositionalKeys.HyperKeys;
+import PositionalKeys.LocalCoord;
+import org.bukkit.Location;
+import org.jctools.maps.NonBlockingHashMap;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public final class ChunkValues {
 
     String factionName = null;
-    Map<FastCoordLocal, byte[]> tensileValues = new HashMap<>();
+/* 0- Tensile Values, 1- Health, 2- Type, 3- Runtime Local interaction timestamp */
+    Map<LocalCoord, short[]> blockVals = new NonBlockingHashMap<>();
+
     boolean[][] facTerritory = new boolean[16][16];
 
     public ChunkValues(){
@@ -18,5 +22,9 @@ public final class ChunkValues {
                 facTerritory[x][z] = false;
             }
         }
+    }
+
+    public void getBlockData(){
+        blockVals.get()
     }
 }

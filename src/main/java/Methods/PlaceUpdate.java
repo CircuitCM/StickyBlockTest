@@ -1,6 +1,7 @@
 package Methods;
 
 import Storage.ChunkLocation;
+import Storage.ChunkValues;
 import Storage.ValueStorage;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,10 +18,11 @@ public class PlaceUpdate {
 
     private ValueStorage vs;
     private Material ar = Material.AIR;
+    private ChunkValues[][] cv;
 
-    public PlaceUpdate(ValueStorage vs){
+    public PlaceUpdate(ValueStorage vs, ChunkValues chunkValues){
+        cv = chunkValues;
         this.vs= vs;
-
     }
 
     @SuppressWarnings("deprecation")

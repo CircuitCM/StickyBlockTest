@@ -1,4 +1,4 @@
-package Storage;
+package Storage.KryoExtensions;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;

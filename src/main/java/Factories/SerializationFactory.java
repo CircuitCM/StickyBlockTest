@@ -1,7 +1,7 @@
 package Factories;
 
 import Storage.ChunkValues;
-import Storage.LocationSimpleSerializer;
+import Storage.KryoExtensions.LocationSimpleSerializer;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;

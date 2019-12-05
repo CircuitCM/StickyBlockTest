@@ -2,6 +2,7 @@ package Events;
 
 import Factories.HyperScheduler;
 import Methods.MethodInitializer;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
@@ -27,7 +28,7 @@ public class BlockEvents implements Listener {
 
         Block block = e.getBlock();
         if(m.hasHealth(block)){
-            HyperScheduler.Sync_AsyncExecutor.runTask(() -> m.addHealth(block,-1));
+            HyperScheduler.sync_AsyncExecutor.runTask(() -> m.addHealth(block,-1));
             e.setCancelled(true);
         }else {
             HyperScheduler.blockEventExecutor.runTask(() -> m.breakPhysics(block));

@@ -1,5 +1,6 @@
 package Enums;
 
+import PositionalKeys.ChunkCoord;
 import Storage.ChunkLocation;
 import Storage.RegionCoords;
 import org.bukkit.Chunk;
@@ -28,12 +29,13 @@ public enum Coords {
         return l.clone().add(x,y,z);
     }
 
-    public static ChunkLocation CHUNK(Location ls){
-        Location l = ls.clone();
-        return new ChunkLocation(l.getBlockX()>> CHUNK,l.getBlockZ() >> CHUNK);
+    public static ChunkCoord CHUNK(Location ls){
+        final int x = ls.getBlockX();
+        final int z = ls.getBlockZ();
+        return new ChunkCoord(x>> CHUNK,z>> CHUNK);
     }
 
-    public static ChunkLocation CHUNK(Chunk c){
+    public static ChunkCoord CHUNK(Chunk c){
         return new ChunkLocation(c.getX(),c.getZ());
     }
 
