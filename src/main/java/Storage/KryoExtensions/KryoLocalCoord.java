@@ -19,10 +19,9 @@ public class KryoLocalCoord extends Serializer<LocalCoord> {
 
     @Override
     public LocalCoord read(Kryo kryo, Input input, Class locc) {
-        final short i = input.readShort();
-        return HyperKeys.localCoord
-                [i>>8]
-                [(i<<8)>>12]
-                [(i<<12)>>12];
+        short i = input.readShort();
+        final int a;
+        i < 0 ? a=-i : a=i;
+        return HyperKeys.localCoord[a];
     }
 }
