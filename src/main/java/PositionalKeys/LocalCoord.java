@@ -5,7 +5,7 @@ import java.util.Objects;
 public final class LocalCoord{
 
     public final short parsedCoord;
-    private int h;
+    private final int h;
 
     public LocalCoord(short hash) {
         this.parsedCoord = hash;

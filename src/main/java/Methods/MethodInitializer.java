@@ -2,9 +2,8 @@ package Methods;
 
 import Enums.Coords;
 import Factories.MemoryFactory;
-import PositionalKeys.ChunkCoord;
 import Storage.ChunkLocation;
-import Storage.ChunkValues;
+import Storage.FastUpdateHandler;
 import Storage.ValueStorage;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -12,7 +11,10 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.FallingBlock;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Queue;
+import java.util.Set;
 
 import static Methods.Mathz.yLocComp;
 import static Runnables.BukkitInjector.injectFallingBlocks;
@@ -24,40 +26,21 @@ public class MethodInitializer {
     private PlaceUpdate pu;
     private BreakUpdate bu;
     private BedrockCheck bc;
-    private ChunkValues[][] cv = new ChunkValues[7][7];
+    private FastUpdateHandler cv;
 
     public MethodInitializer(ValueStorage vs){
         this.vs = vs;
+        cv = new FastUpdateHandler(9,9);
         pu= new PlaceUpdate(vs,cv);
         bu= new BreakUpdate(vs,cv);
         bc= new BedrockCheck();
     }
 
-    private void whipeValueArray(){
-        for(byte i=0;i<cv.length;i++){
-            for(byte l=0;l<cv[i].length;l++){
-                cv[i][l] = null;
-            }
-        }
-    }
 
     private void postBreakUpdate(Location l, Queue<Location>[] placeUpdate, Set<Location> fallQuery){
         for (int i = 0; i <placeUpdate.length; i++) {
             while(!placeUpdate[i].isEmpty()){
                 pu.placeChecks(l,placeUpdate[i].poll(),fallQuery);
-            }
-        }
-    }
-
-    @Deprecated
-    public void dropBlocks(Location[] fallQuery){
-        if(fallQuery==null||fallQuery.length==0) return;
-        Map<Location, Integer> healthTransfer = new HashMap<>();
-        for (Location l : fallQuery) {
-            if (vs.containsHealth(l)) {
-                int i = vs.getHealth(l);
-                healthTransfer.put(l,i);
-                vs.delHealth(l);
             }
         }
     }

@@ -20,10 +20,4 @@ public class ValueStorage {
         return chunkValues.get(cc);
     }
 
-    native void calculate(){
-
-    }
-
-
-
 }

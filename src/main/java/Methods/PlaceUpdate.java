@@ -1,7 +1,9 @@
 package Methods;
 
+import PositionalKeys.ChunkCoord;
+import PositionalKeys.LocalCoord;
 import Storage.ChunkLocation;
-import Storage.ChunkValues;
+import Storage.FastUpdateHandler;
 import Storage.ValueStorage;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -18,32 +20,43 @@ public class PlaceUpdate {
 
     private ValueStorage vs;
     private Material ar = Material.AIR;
-    private ChunkValues[][] cv;
+    private final int i = Integer.MAX_VALUE-1;
+    private FastUpdateHandler up;
+    private Queue<LocalCoord> coordQ = new LinkedList<>();
+    private Queue<byte[]> chunkRef = new LinkedList<>();
 
-    public PlaceUpdate(ValueStorage vs, ChunkValues chunkValues){
-        cv = chunkValues;
+    private Queue<Location> qChunk = new LinkedList<>();
+    private Set<Location> qChunkRef = new HashSet<>(48);
+
+    public PlaceUpdate(ValueStorage vs, FastUpdateHandler updateHandler){
+
+        up = updateHandler;
         this.vs= vs;
     }
 
-    @SuppressWarnings("deprecation")
-    public void placeChecks(Location li,Location l1, Set<Location> fallQuery) {
+    public void placeChecks(LocalCoord lc, ChunkCoord cc, Set<Location> fallQuery) {
 
-        Queue<Location> locquery = new LinkedList<>();
-        Set<Location> queued = new HashSet<>();
+        byte[] lr = {4, 4};
 
-        locquery.add(l1);
+        coordQ.add(lc);
+        chunkRef.add(lr);
+        up.checkedCoords[lr[0]][lr[1]].add(lc);
+        up.chunkValueHolder[lr[0]][lr[1]] = vs.chunkValues.get(cc);
+        up.chunkValueMarker.add(lr);
 
-        while(!locquery.isEmpty()) {
-            Location l = locquery.poll();
-            Location[] ls = {
+        while(!coordQ.isEmpty()) {
+            LocalCoord l = coordQ.poll();
+            byte[] lr = chunkRef.poll();
+            LocalCoord[] ls = {
                 EAST.getLoc(l), SOUTH.getLoc(l),
                 WEST.getLoc(l), NORTH.getLoc(l),
                 UP.getLoc(l), DOWN.getLoc(l)};
+            byte[][] lrs = {};
 
-            Boolean[] ms = new Boolean[ls.length];
-            int[] is = new int[ls.length];
+            Boolean[] ms = {false,false,false,false,false,false};
+            int[] is = {i,i,i,i,i,i};
 
-            for (int i = 0; i < ls.length; i++) {
+            for (byte i = 0; ++i<=6;) {
                 is[i] = vs.getOrMax(ls[i]);
 
                 ms[i] = !(queued.contains(ls[i])||

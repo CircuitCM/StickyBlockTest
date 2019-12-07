@@ -1,6 +1,6 @@
 package Methods;
 
-import Storage.ChunkValues;
+import Storage.FastUpdateHandler;
 import Storage.ValueStorage;
 import org.bukkit.Location;
 
@@ -11,10 +11,12 @@ import static Enums.Coords.*;
 public class BreakUpdate {
 
     private ValueStorage vs;
-    private ChunkValues[][] cv;
+    private FastUpdateHandler cv;
+    private Queue<Location> coordQ = new LinkedList<>();
+    private Set<Location> coordMark = new HashSet<>(32);
 
-    public BreakUpdate(ValueStorage vs, ChunkValues[][] chunkValues){
-        cv =chunkValues;
+    public BreakUpdate(ValueStorage vs, FastUpdateHandler updateHandler){
+        cv =updateHandler;
         this.vs= vs;
 
     }

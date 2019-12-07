@@ -14,6 +14,10 @@ abstract class BoundCoord implements KeyCoord {
         h = Objects.hash(parsedCoord);
     }
 
+    public int[] getCoord() {
+        return new int[]{parsedCoord>>>16,parsedCoord<<16>>>16};
+    }
+
     @Override
     public int hashCode() {
         return h;
