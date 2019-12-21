@@ -1,19 +1,14 @@
+import Cores.WorldDataCore;
 import Events.BlockEvents;
 import Events.ChunkEvents;
 import Events.EntityEvents;
-import Methods.MethodInitializer;
-import Storage.InstanceConstructor;
 import Storage.KryoChunkData;
 
 public class CoreConstructor {
 
-    private BlockPhysics plugin;
 
-    /* The Instance */
-    InstanceConstructor ic;
+    private WorldDataCore worldDataCore;
     KryoChunkData kd;
-    MethodInitializer mi;
-
 
     /*Event Instances:*/
     BlockEvents be;
@@ -23,14 +18,13 @@ public class CoreConstructor {
 
     public CoreConstructor(BlockPhysics p){
 
-        plugin= p;
-        ic= new InstanceConstructor(plugin);
-        mi= ic.getMethods();
-        kd= ic.getKryoChunkSerializer();
+
+        worldDataCore = new WorldDataCore(p);
+        kd = new KryoChunkData(p,worldDataCore.vs);
         /* Events Construction: */
-        be= new BlockEvents(mi,plugin);
-        ce= new ChunkEvents(mi,kd);
-        ee= new EntityEvents(mi,plugin);
+        be= new BlockEvents(worldDataCore,p);
+        ce= new ChunkEvents(worldDataCore,kd);
+        ee= new EntityEvents(worldDataCore,p);
 
     }
 }

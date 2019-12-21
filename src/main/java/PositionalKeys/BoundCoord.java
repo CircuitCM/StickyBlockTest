@@ -8,14 +8,16 @@ abstract class BoundCoord implements KeyCoord {
     public final int h;
 
     BoundCoord(int xl, int zl) {
-//        final int x= xl;
-//        final int z= zl;
         parsedCoord=(xl<<16)|zl;
+        h = Objects.hash(parsedCoord);
+    }
+    BoundCoord(int xz) {
+        parsedCoord=xz;
         h = Objects.hash(parsedCoord);
     }
 
     public int[] getCoord() {
-        return new int[]{parsedCoord>>>16,parsedCoord<<16>>>16};
+        return new int[]{parsedCoord>>16,parsedCoord<<16>>16};
     }
 
     @Override

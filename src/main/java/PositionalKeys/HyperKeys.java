@@ -7,28 +7,11 @@ public class HyperKeys {
 
     static{
 
-        int y= 0b0;
-        int arrayPos = 0;
-        while(y <= 0b11111111){
-            int yl=y;
-            yl<<=8;
-            int x=0b0;
-            while (x<= 0b1111){
-                int xl=x;
-                xl<<=4;
-                int yxl= yl|xl;
-                int z=0b0;
-                while (z<=0b1111) {
-                    //to get (y<<8)|(x<<4)|z
-                    localCoord[arrayPos] = new LocalCoord((short)(yxl|z));
-                    ++z;
-                    ++arrayPos;
-                }
-                ++x;
-            }
-            ++y;
+        int loop;
+        for(loop=-1;++loop<65536;){
+            localCoord[loop] = new LocalCoord((short)loop);
         }
-        int x2=0b0;
+        /*int x2=0b0;
         int arrayPos2 = 0;
         while (x2<= 0b1111){
             int xl=x2;
@@ -40,6 +23,6 @@ public class HyperKeys {
                 ++arrayPos2;
             }
             ++x2;
-        }
+        }*/
     }
 }

@@ -1,9 +1,9 @@
 package Storage;
 
-import Enums.Coords;
 import Factories.HyperScheduler;
 import Factories.SerializationFactory;
-import Methods.Mathz;
+import Util.Coords;
+import Util.Mathz;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
@@ -23,8 +23,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 public class KryoChunkData {
-
-    private JavaPlugin p;
 
     Pool<Kryo> kryoPool = new Pool<Kryo>(true, true, 12) {
         protected Kryo create () {
@@ -47,12 +45,12 @@ public class KryoChunkData {
 
     private ValueStorage vs;
 
-    public KryoChunkData(JavaPlugin plugin, ValueStorage valueStorage){
+    public KryoChunkData(JavaPlugin p, ValueStorage valueStorage){
 
-        p=plugin;
+
         vs=valueStorage;
 
-        chunkData = plugin.getDataFolder().toPath().resolve("ChunkData");
+        chunkData = p.getDataFolder().toPath().resolve("ChunkData");
         cdString = chunkData.toString();
 
         if (!Files.exists(chunkData)) {
@@ -138,7 +136,7 @@ public class KryoChunkData {
     private void saveChunk(Kryo k, Output out, Set<ChunkLocation> cls) throws IOException {
 
         for(ChunkLocation cl:cls){
-            if(!vs.containsChunkData(cl)) continue;
+            if(true) continue;
             chunkTimeSave.remove(cl);
             String sc = "/"+ Coords.CHUNK_STRING(cl);
             File cf = new File(cdString+sc+".dat");
@@ -147,7 +145,7 @@ public class KryoChunkData {
 
             out.setOutputStream(new FileOutputStream(cf));
 
-            k.writeObject(out,vs.removeGetChunkData(cl));
+            k.writeObject(out,null);
             out.flush();
 
             out.getOutputStream().close();
@@ -220,7 +218,7 @@ public class KryoChunkData {
             pIn.setInputStream(new FileInputStream(cf));
 
             ChunkValues cv = pKryo.readObject(pIn, ChunkValues.class);
-            vs.putChunkData(cl, cv);
+//            vs.putChunkData(cl, cv);
 
             pIn.getInputStream().close();
             pIn.close();

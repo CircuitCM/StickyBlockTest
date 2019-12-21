@@ -2,42 +2,46 @@ package Storage;
 
 import PositionalKeys.LocalCoord;
 
+import java.util.ArrayDeque;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
 
 public class FastUpdateHandler {
 
-    public ChunkValues[][] chunkValueHolder;
-    public HashSet[][] checkedCoords;
-    public Queue<byte[]> chunkValueMarker;
 
-    public FastUpdateHandler(int x , int z){
+    public HashMap<LocalCoord,byte[]>[] chunkValueHolder;
+    public boolean[] checkedCoords;
+    public ArrayDeque<byte[]> chunkValueMarker;
+    public byte[][] relativeChunkReference;
+    public HashSet<LocalCoord>[] blockFallQuery;
+    public ArrayDeque<LocalCoord>[] blockUpdate;
 
-        chunkValueHolder = new ChunkValues[x][z];
-        checkedCoords = new HashSet[x][z];
-        chunkValueMarker = new LinkedList<>();
+    public FastUpdateHandler(final int x , final int z){
 
-        for(byte i=0;++i<=x;){
-            for(byte l=0;++l<=z;){
-                checkedCoords[x][z]=new HashSet<LocalCoord>(8);
+        int xz = x*z;
+        chunkValueHolder = new HashMap[xz];
+        checkedCoords = new boolean[(xz)<<16];
+        chunkValueMarker = new ArrayDeque<>(81);
+        relativeChunkReference = new byte[xz][];
+        blockFallQuery = new HashSet[xz];
+        blockUpdate = new ArrayDeque[xz];
+
+        for (byte xl=0; ++xl<x;){
+            for (byte zl=0; ++zl<z;){
+                byte[] xzl = {xl,zl};
+                relativeChunkReference[xl*x+zl]= xzl;
             }
         }
-    }
 
-    public void clearAll(){
-        for(byte i=0;i<chunkValueHolder.length;i++){
-            for(byte l=0;l<chunkValueHolder[i].length;l++){
-                chunkValueHolder[i][l] = null;
-            }
+        for (int xzl=0; ++xzl<xz;){
+            blockFallQuery[xzl]= new HashSet<>(96);
+            blockUpdate[xzl]= new ArrayDeque<>(64);
+//            chunkValueHolder[xzl]= null;
         }
-    }
+        /*int bloop = checkedCoords.length;
+        for (int i = 0; ++i<=bloop;){
+            checkedCoords[i]=false;
+        }*/
 
-    public void markerClear(){
-        byte[] cl = chunkValueMarker.poll();
-        while (cl!=null){
-            chunkValueHolder[cl[0]][cl[1]]=null;
-            cl=chunkValueMarker.poll();
-        }
     }
 }

@@ -1,52 +1,50 @@
 package Events;
 
+import Cores.WorldDataCore;
 import Factories.HyperScheduler;
-import Methods.MethodInitializer;
-import PositionalKeys.HyperKeys;
+import PositionalKeys.ChunkCoord;
+import Storage.ChunkValues;
+import Util.Coords;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jctools.maps.NonBlockingHashMap;
 
 public class EntityEvents implements Listener {
 
 
-    private MethodInitializer m;
+    private WorldDataCore wd;
+    private NonBlockingHashMap<ChunkCoord, ChunkValues> chunkData;
     private JavaPlugin p;
 
-    public EntityEvents(MethodInitializer methodInitializer, JavaPlugin plugin){
-        m = methodInitializer;
+    public EntityEvents(WorldDataCore worldDataCore, JavaPlugin plugin){
+        wd = worldDataCore;
+        chunkData = wd.vs.chunkValues;
         p = plugin;
     }
 
     @EventHandler
     public void checkTensile(PlayerInteractEvent e){
 
-        HyperScheduler.Sync_AsyncExecutor.runTask(() -> stickChecker(e));
+        HyperScheduler.sync_AsyncExecutor.runTask(() -> stickChecker(e));
     }
 
-    public void stickChecker(PlayerInteractEvent e){
+    private void stickChecker(PlayerInteractEvent e){
         if (e.getPlayer().getItemInHand().getType()== Material.STICK){
             switch (e.getAction()){
                 case RIGHT_CLICK_BLOCK:
-                    int i = m.getTensileValue(e.getClickedBlock());
-                    if(i>=Integer.MAX_VALUE-1) {
-                        e.getPlayer().sendMessage(ChatColor.AQUA + "Sticky value: " + ChatColor.GOLD + "[ " + 0 + " ]");
-                    } else{
-                        e.getPlayer().sendMessage(ChatColor.AQUA + "Sticky value: " + ChatColor.GOLD + "[ " + i + ","+ChatColor.AQUA+m.getHealthValue(e.getClickedBlock()) + ChatColor.GOLD + " ]");
+                    Block b =e.getClickedBlock();
+                    byte[] dt = chunkData.get(Coords.CHUNK(b)).blockVals.get(Coords.COORD(b));
+                    if(dt==null){
+                        e.getPlayer().sendMessage("No BlockData Here");
+                    }else {
+                        e.getPlayer().sendMessage(ChatColor.AQUA + "Values: " + ChatColor.GOLD +
+                            "[" + dt[0] + " " + dt[1] + " " + dt[2] + "]");
                     }
-                    break;
-
-                case RIGHT_CLICK_AIR:
-                    e.getPlayer().sendMessage(HyperKeys.localCoord[255][0][0].hash
-                        +"\n"+HyperKeys.localCoord[0][15][15].hash
-                        +"\n"+HyperKeys.localCoord[1][0][0].hash
-                        +"\n"+HyperKeys.localCoord[255][14][15].hash
-                        +"\n"+HyperKeys.localCoord[128][0][0].hash);
-                    break;
-
             }
         }
     }

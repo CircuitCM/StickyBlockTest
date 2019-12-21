@@ -1,9 +1,7 @@
 package Factories;
 
 import org.jctools.queues.MessagePassingQueue;
-import org.jctools.queues.spec.ConcurrentQueueSpec;
-import org.jctools.queues.spec.Ordering;
-import org.jctools.queues.spec.Preference;
+import org.jctools.queues.SpscArrayQueue;
 
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -15,35 +13,35 @@ public class JCthreadPoolWrapper {
     private final MessagePassingQueue<Runnable> poolQueue;
     private final ThreadPoolExecutor tpool;
 
-    private AtomicInteger consumerThreads = new AtomicInteger(0);
+    private final AtomicInteger consumerThreads = new AtomicInteger(0);
     private final int maxThreads;
 
     public JCthreadPoolWrapper(boolean oneProducer, int consumerThreads, int QueueCapacity, int timeOutSeconds, int threadPriority, String threadFunction){
 
-        poolQueue = JCqueueFactory.newQueue(new ConcurrentQueueSpec(oneProducer?1:0,consumerThreads,QueueCapacity,Ordering.FIFO,Preference.NONE));
+        poolQueue = new SpscArrayQueue<>(1024);
 
         tpool = new ThreadPoolExecutor(0, 1000, timeOutSeconds, TimeUnit.SECONDS,new SynchronousQueue<>(),
             new HyperThreader(threadPriority,threadFunction));
 
         maxThreads = consumerThreads;
+
     }
 
     public void runTask(Runnable r){
         poolQueue.relaxedOffer(r);
-        if(consumerThreads.incrementAndGet()<=maxThreads){
-            tpool.execute(this::threadRun);
+            if(consumerThreads.incrementAndGet()<=1){
+                tpool.execute(this::execute);
             return;
         }
         consumerThreads.decrementAndGet();
     }
 
-    private void threadRun(){
-        Runnable r;
-        while (!poolQueue.isEmpty()) {
-            if((r = poolQueue.relaxedPoll())!=null){
-                r.run();
-            }
+    private final void execute(){
+        Runnable r = poolQueue.relaxedPoll();
+        while (r!=null) {
+            r.run();
+            r = poolQueue.relaxedPoll();
         }
-        consumerThreads.decrementAndGet();
+        this.consumerThreads.decrementAndGet();
     }
 }

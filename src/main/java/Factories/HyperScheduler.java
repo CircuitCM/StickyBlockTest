@@ -1,8 +1,8 @@
 package Factories;
 
-import sun.nio.ch.ThreadPool;
-
-import java.util.concurrent.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public final class HyperScheduler {
 
@@ -13,11 +13,11 @@ public final class HyperScheduler {
     public static JCthreadPoolWrapper sync_AsyncExecutor;
     public static ThreadPoolExecutor performance_Test;
 
-    public static void init(){
+    static{
         blockEventExecutor =
             new JCthreadPoolWrapper(true,1,0,120,10,"BlockEventExecutor");
         chunkEventExecutor =
-            new JCthreadPoolWrapper(true,1,0,10,1,"ChunkEventExecutor");
+            new JCthreadPoolWrapper(true,1,0,1000,10,"ChunkEventExecutor");
         fallBlockBuilder =
             new JCthreadPoolWrapper(true,1,0,120,10,"FallingBlockBuilder");
         chunkLoadExecutor =

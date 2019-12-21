@@ -9,7 +9,7 @@ public final class LocalCoord{
 
     public LocalCoord(short hash) {
         this.parsedCoord = hash;
-        h = Objects.hash(hash);
+        h = Objects.hash(hash&0xffff);
     }
 
     @Override

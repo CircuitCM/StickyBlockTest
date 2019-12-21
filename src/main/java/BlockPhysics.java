@@ -1,5 +1,3 @@
-import Factories.HyperScheduler;
-import Runnables.BukkitInjector;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -11,19 +9,18 @@ public class BlockPhysics extends JavaPlugin {
 
     private CoreConstructor cC;
 
+    public static JavaPlugin warFort;
+
     public BlockPhysics() {
-        cC = new CoreConstructor(this);
+        warFort=this;
     }
 
     @Override
     public void onEnable() {
-
+        cC = new CoreConstructor(this);
         getServer().getPluginManager().registerEvents(cC.be, this);
         getServer().getPluginManager().registerEvents(cC.ce, this);
         getServer().getPluginManager().registerEvents(cC.ee, this);
-
-        new BukkitInjector(this);
-        HyperScheduler.init();
         getServer().getConsoleSender().sendMessage(ChatColor.AQUA + "\nBlockPhysicsTest Initialized");
     }
 

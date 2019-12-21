@@ -1,25 +1,31 @@
 package Events;
 
+import Cores.WorldDataCore;
 import Factories.HyperScheduler;
-import Methods.MethodInitializer;
-import Storage.ChunkLocation;
+import PositionalKeys.ChunkCoord;
+import Storage.ChunkValues;
 import Storage.KryoChunkData;
+import Util.PlaceUpdate;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.jctools.maps.NonBlockingHashMap;
 
-import static Enums.Coords.CHUNK;
+import static Util.Coords.CHUNK;
 
 public class ChunkEvents implements Listener {
 
-    private MethodInitializer m;
-    private KryoChunkData kd;
+    private final PlaceUpdate chunkGen;
+    private final NonBlockingHashMap<ChunkCoord, ChunkValues> chunkData;
+    private final KryoChunkData kd;
     private boolean storeChunk = true;
 
-    public ChunkEvents(MethodInitializer mi, KryoChunkData dKryo) {
-        m = mi;
+    public ChunkEvents(WorldDataCore wd, KryoChunkData dKryo) {
         kd = dKryo;
+        chunkGen =wd.pu;
+        chunkData = wd.vs.chunkValues;
+
     }
 
     @EventHandler
@@ -34,27 +40,13 @@ public class ChunkEvents implements Listener {
 
     private void loadChunk(ChunkLoadEvent e){
 
-        ChunkLocation cl = CHUNK(e.getChunk());
-
-        if(kd.chunksInStorage(cl)){
-            try {
-                kd.queryLoad(cl);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }else{
-            m.placePhysicsChunk(e.getChunk());
-        }
+        chunkGen.setNewChunk(e.getChunk().getChunkSnapshot(false,false,false));
     }
 
     public void unloadChunk(ChunkUnloadEvent e){
-        ChunkLocation cl = CHUNK(e.getChunk());
-        if (m.containsChunkData(cl)) {
-            if (storeChunk) {
-                kd.querySave(cl);
-            } else {
-                m.deleteChunkData(cl);
-            }
-        }
+        ChunkCoord cc = CHUNK(e.getChunk());
+        if(!chunkData.isEmpty()) {
+            chunkData.remove(cc);
+        }else chunkData.remove(cc);
     }
 }
