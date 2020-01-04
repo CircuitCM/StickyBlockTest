@@ -1,8 +1,6 @@
 package Factories;
 
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 
 public class HyperThreader implements ThreadFactory {
 
@@ -20,7 +18,7 @@ public class HyperThreader implements ThreadFactory {
         Thread hyperThread = new Thread(r);
         hyperThread.setPriority(pri);
         ++createdThreadCount;
-        hyperThread.setName(tname + " : " + createdThreadCount);
+        hyperThread.setName("Thread: "+tname + ". Creation Instance: " + createdThreadCount+".");
         return hyperThread;
     }
 

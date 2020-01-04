@@ -1,5 +1,6 @@
 package Events;
 
+import org.bukkit.block.Block;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -8,19 +9,19 @@ import java.util.ArrayList;
 
 public final class FallingBlockSpawnEvent extends Event {
     private static final HandlerList handlers = new HandlerList();
-    private final ArrayList<int[]> ls;
-    private final ArrayList<FallingBlock> fbs;
+    private final ArrayList<Block> blocks;
+    private final FallingBlock[] fbs;
 
-    public FallingBlockSpawnEvent(ArrayList<int[]> locs, ArrayList<FallingBlock> fallingBlocks) {
-        ls= locs;
+    public FallingBlockSpawnEvent(FallingBlock[] fallingBlocks, ArrayList<Block> locs) {
+        blocks= locs;
         fbs= fallingBlocks;
     }
 
-    public ArrayList<int[]> getLocations() {
-        return ls;
+    public ArrayList<Block> getBlocks() {
+        return blocks;
     }
 
-    public ArrayList<FallingBlock> getFallingBlocks() {
+    public FallingBlock[] getFallingBlocks() {
         return fbs;
     }
 

@@ -7,6 +7,7 @@ import java.util.UUID;
 public final class HSettings {
 
     public static final byte TENSILE_RANGE = 10;
+    public static final boolean ASYNC = false;
 
     public static final UUID GAME_WORLD;
 

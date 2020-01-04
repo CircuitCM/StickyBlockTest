@@ -1,22 +1,24 @@
-package Factories;
+package Storage.KryoExtensions;
 
+import PositionalKeys.LocalCoord;
 import Storage.ChunkValues;
-import Storage.KryoExtensions.LocationSimpleSerializer;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import org.bukkit.Location;
 
 import java.util.HashMap;
 
 public class SerializationFactory {
 
-    private static LocationSimpleSerializer lss = new LocationSimpleSerializer();
+    private static KryoLocalCoord lss = new KryoLocalCoord();
 
     public static Kryo newChunkKryo(){
         Kryo kryo = new Kryo();
         kryo.register(HashMap.class);
-        kryo.register(Location.class, lss);
+        kryo.register(byte[].class);
+        kryo.register(boolean[].class);
+        kryo.register(String.class);
+        kryo.register(LocalCoord.class, lss);
         kryo.register(ChunkValues.class);
         return kryo;
     }

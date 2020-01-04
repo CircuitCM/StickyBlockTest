@@ -1,7 +1,7 @@
 package Storage;
 
-import Factories.HyperScheduler;
-import Factories.SerializationFactory;
+import PositionalKeys.ChunkCoord;
+import Storage.KryoExtensions.SerializationFactory;
 import Util.Coords;
 import Util.Mathz;
 import com.esotericsoftware.kryo.Kryo;
@@ -14,57 +14,57 @@ import org.jctools.maps.NonBlockingHashMap;
 import org.jctools.maps.NonBlockingHashSet;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 
 public class KryoChunkData {
 
-    Pool<Kryo> kryoPool = new Pool<Kryo>(true, true, 12) {
+    public Pool<Kryo> kryoPool = new Pool<Kryo>(true, true, 4) {
         protected Kryo create () {
             return SerializationFactory.newChunkKryo();
         }
     };
 
-    Pool<Input> inputPool = new Pool<Input>(true, false, 12) {
+    public Pool<Input> inputPool = new Pool<Input>(true, false, 4) {
         protected Input create () {
             return SerializationFactory.newChunkInput();
         }
     };
 
-    private ConcurrentMap<RegionCoords,RegionSerializer> regionQueue = new NonBlockingHashMap<>(8);
-    private ConcurrentMap<Integer,Set<ChunkLocation>> timeChunkSave = new NonBlockingHashMap<>(12);
-    private ConcurrentMap<ChunkLocation,Integer> chunkTimeSave = new NonBlockingHashMap<>(128);
+    private NonBlockingHashMap<Integer, NonBlockingHashSet<ChunkCoord>> timeChunkSave = new NonBlockingHashMap<>(12);
+    private NonBlockingHashMap<ChunkCoord,Integer> chunkTimeSave = new NonBlockingHashMap<>(128);
 
-    private final Path chunkData;
-    private final String cdString;
+    public final Path pluginPath;
+    public final Path chunkPath;
+    public String cdString;
 
-    private ValueStorage vs;
+    private NonBlockingHashMap<ChunkCoord,ChunkValues> chunkData;
 
     public KryoChunkData(JavaPlugin p, ValueStorage valueStorage){
 
 
-        vs=valueStorage;
+        chunkData=valueStorage.chunkValues;
 
-        chunkData = p.getDataFolder().toPath().resolve("ChunkData");
-        cdString = chunkData.toString();
+        pluginPath = p.getDataFolder().toPath();
+        chunkPath = pluginPath.resolve("ChunkData");
+        cdString = chunkPath.toString();
 
-        if (!Files.exists(chunkData)) {
+        if (!Files.exists(pluginPath)) {
             try {
-                Files.createDirectory(chunkData);
+                Files.createDirectory(pluginPath);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-
-        Thread manager = new Thread(this::memoryManage);
-        manager.setName("MemoryManager");
-        manager.setDaemon(true);
-        manager.start();
+        if(!Files.exists(chunkPath)){
+            try {
+                Files.createDirectory(chunkPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         Thread chunkSaver = new Thread(this::processSaveChunks);
         chunkSaver.setName("ChunkSaver");
@@ -75,56 +75,48 @@ public class KryoChunkData {
 
     }
 
-    private void memoryManage() {
-
-        while(Thread.currentThread().isAlive()){
-            try {
-                Thread.sleep(150000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            int current = Mathz.TIME_SEGMENT(System.currentTimeMillis(), 60);
-
-            for(RegionCoords rs : regionQueue.keySet()){
-                if(regionQueue.get(rs).lastUse<current-2){
-                    ////
-                    b("Removing region: "+ rs.getX()+" "+rs.getZ());
-                    regionQueue.remove(rs);
-                }
-            }
-        }
-    }
-
     private void processSaveChunks() {
 
         Kryo inKryo = SerializationFactory.newChunkKryo();
         Output output = SerializationFactory.newChunkOutput();
 
-        while(Thread.currentThread().isAlive()){
-
+        while(true){
             try {
-                Thread.sleep(30000);
+                Thread.sleep(10000);
+                if(!timeChunkSave.isEmpty()){
+                    int timeSegment = Mathz.TIME_SEGMENT(System.currentTimeMillis(),5);
+                    File cf; NonBlockingHashSet<ChunkCoord> cv;
+                    for (int i: timeChunkSave.keySet()) {
+                        if(i<timeSegment-1){
+                            ////
+                            b("Saving time segment: " + i);
 
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            if(!timeChunkSave.isEmpty()){
-                int timeSegment = Mathz.TIME_SEGMENT(System.currentTimeMillis(),5);
+                            cv = timeChunkSave.get(i);
+                            for(ChunkCoord cl:cv){
 
-                for (int i: timeChunkSave.keySet()) {
+                                chunkTimeSave.remove(cl);
+                                cf = new File(cdString+"/"+Coords.CHUNK_STRING(cl)+".dat");
 
-                    if(i<timeSegment-2){
-                        ////
-                        b("Saving time segment: " + i);
-                        try {
-                            saveChunk(inKryo,output,timeChunkSave.get(i));
+                                if(!cf.exists()) cf.createNewFile();
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                                output.setOutputStream(new FileOutputStream(cf));
+
+                                if(chunkData.get(cl)!=null) {
+                                    inKryo.writeObject(output, chunkData.get(cl));
+                                    output.flush();
+
+                                    output.getOutputStream().close();
+                                    output.close();
+                                }
+                                chunkData.remove(cl);
+                            }
+                            timeChunkSave.remove(i);
                         }
-                        timeChunkSave.remove(i);
                     }
                 }
+
+            } catch (InterruptedException | IOException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -133,100 +125,15 @@ public class KryoChunkData {
         Bukkit.broadcastMessage(i);
     }
 
-    private void saveChunk(Kryo k, Output out, Set<ChunkLocation> cls) throws IOException {
-
-        for(ChunkLocation cl:cls){
-            if(true) continue;
-            chunkTimeSave.remove(cl);
-            String sc = "/"+ Coords.CHUNK_STRING(cl);
-            File cf = new File(cdString+sc+".dat");
-
-            if(!cf.exists()) cf.createNewFile();
-
-            out.setOutputStream(new FileOutputStream(cf));
-
-            k.writeObject(out,null);
-            out.flush();
-
-            out.getOutputStream().close();
-            out.close();
-            ////
-            b("Saved: "+cl.getX()+" "+cl.getZ());
-        }
-    }
-
-    public void querySave(ChunkLocation cl){
+    public void querySave(ChunkCoord cc){
         int currentTime = Mathz.TIME_SEGMENT(System.currentTimeMillis(), 5);
-////
-        b(cl.getX()+cl.getZ()+" save queried");
-        chunkTimeSave.putIfAbsent(cl,currentTime);
+//        b(coord[0]+" "+coord[1]+" save queried");
+        chunkTimeSave.putIfAbsent(cc,currentTime);
         timeChunkSave.putIfAbsent(currentTime, new NonBlockingHashSet<>());
-        timeChunkSave.get(currentTime).add(cl);
+        timeChunkSave.get(currentTime).add(cc);
     }
 
-    public boolean chunksInStorage(ChunkLocation cl){
-        return Files.exists(chunkData.resolve(Coords.CHUNK_STRING(cl)+".dat"));
-    }
-
-    public void queryLoad(ChunkLocation cl) {
-
-        RegionCoords cr = Coords.REGION(cl);
-        regionQueue.putIfAbsent(cr, new RegionSerializer());
-
-        if(!chunkTimeSave.containsKey(cl)){
-            RegionSerializer rs = regionQueue.get(cr);
-            rs.loadQ.relaxedOffer(cl);
-
-            if(rs.processing.compareAndSet(true,false)) {
-                HyperScheduler.chunkLoadExecutor.runTask(() -> {
-                    try {
-                        Thread.sleep(200);
-                        runRegionLoad(rs);
-                    } catch (IOException | InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                });
-            }
-            ////
-            b(cl.getX()+" "+cl.getZ()+" load queried");
-        }else {
-            int time = chunkTimeSave.remove(cl);
-            timeChunkSave.get(time).remove(cl);
-            ////
-            b("Save Chunk Canceled: " + cl.getX() + " " + cl.getZ());
-        }
-    }
-
-
-    private void runRegionLoad(RegionSerializer rs) throws IOException {
-        ////
-        b("attemptLoad locked by thread: " + Thread.currentThread().getName());
-
-        rs.lastUse = Mathz.TIME_SEGMENT(System.currentTimeMillis(), 60);
-
-        Kryo pKryo = kryoPool.obtain();
-        Input pIn = inputPool.obtain();
-
-        ChunkLocation cl;
-
-        while(!rs.loadQ.isEmpty()){
-            cl = rs.loadQ.poll();
-
-            String sc = "/" + Coords.CHUNK_STRING(cl);
-            File cf = new File(cdString + sc + ".dat");
-
-            pIn.setInputStream(new FileInputStream(cf));
-
-            ChunkValues cv = pKryo.readObject(pIn, ChunkValues.class);
-//            vs.putChunkData(cl, cv);
-
-            pIn.getInputStream().close();
-            pIn.close();
-        }
-
-        kryoPool.free(pKryo);
-        inputPool.free(pIn);
-
-        rs.processing.lazySet(true);
+    public boolean chunksInStorage(int x, int z){
+        return Files.exists(chunkPath.resolve(x+","+z+".dat"));
     }
 }
