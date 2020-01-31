@@ -54,7 +54,6 @@ public class BreakUpdate {
         byte[] t;
         byte xc;
         byte zc;
-        byte badsort=127;
         int parsedCoord, relChunk = 9*4+4;
         LocalCoord l;
 
@@ -69,9 +68,8 @@ public class BreakUpdate {
 
         coordQ.add(lc);
         chunkRef.add(rcr[relChunk]);
-        localValues.computeIfAbsent(lc, c -> new byte[]{126, 0, 0, 0, 0, 0});
-        t = localValues.get(lc);
-        for(loop=0;++loop<6;)t[loop]=0;
+        t = localValues.computeIfAbsent(lc, c -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
+        t[2] = 0; t[3]=0;
         chunkVals[relChunk] = localValues;
 
         chunkMark.add(rcr[relChunk]);
@@ -139,13 +137,13 @@ public class BreakUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(new ChunkCoord(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 
-                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126, 0, 0, 0, 0, 0});
+                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
 
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[2]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
                 tenseVals[loop]=t[0];
             }
 
@@ -163,12 +161,7 @@ public class BreakUpdate {
                     continue;
                 }
                 if (ms[loop] && valref >= tenseVals[loop]) {
-                    if(badsort>valref){
-                        updtPtrs[relChunk].addFirst(ls[loop]);
-                        badsort=valref;
-                    }else {
-                        updtPtrs[relChunk].addLast(ls[loop]);
-                    }
+                    updtPtrs[relChunk].add(ls[loop]);
                 }
             }
             if (ms[4]) {
@@ -201,8 +194,7 @@ public class BreakUpdate {
         byte[] r;
         byte xc;
         byte zc;
-        byte badsort=127;
-        int x,z, loop,loop2,relChunk=9*4+4,parsedCoord,size = blocks.length,rx=(cc.parsedCoord>>16),rz=(cc.parsedCoord<<16>>16);
+        int x,z, loop,relChunk=9*4+4,parsedCoord,size = blocks.length,rx=cc.parsedCoord>>16,rz=cc.parsedCoord<<16>>16;
         Block b; LocalCoord l;
 
         ArrayDeque<LocalCoord> coordQ = this.coordQ;
@@ -227,13 +219,13 @@ public class BreakUpdate {
 
                 relChunk = (9 * (x - rx +4)) + (z - rz +4);
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(new ChunkCoord(x,z)).blockVals;
+                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(x,z)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
                 coordQ.add(l);
                 chunkRef.add(rcr[relChunk]);
-                t = chunkVals[relChunk].computeIfAbsent(l, n -> new byte[]{126, 0, 0, 0, 0, 0});
-                for (loop2 = 0; ++loop2 < 6; ) t[loop2] = 0;
+                t = chunkVals[relChunk].computeIfAbsent(l, n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
+                t[2] = 0; t[3]=0;
             }
         }
 
@@ -300,13 +292,13 @@ public class BreakUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(new ChunkCoord(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 
-                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126, 0, 0, 0, 0, 0});
+                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
 
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[2]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
                 tenseVals[loop]=t[0];
             }
 
@@ -324,12 +316,8 @@ public class BreakUpdate {
                     continue;
                 }
                 if (ms[loop] && valref >= tenseVals[loop]) {
-                    if(badsort>valref){
-                        updtPtrs[relChunk].addFirst(ls[loop]);
-                        badsort=valref;
-                    }else {
-                        updtPtrs[relChunk].addLast(ls[loop]);
-                    }
+//                    Coords.BLOCK_AT(ls[loop],Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).setType(Material.STONE);
+                    updtPtrs[relChunk].add(ls[loop]);
                 }
             }
             if (ms[4]) {

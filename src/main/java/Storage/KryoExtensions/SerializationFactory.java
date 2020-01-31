@@ -16,18 +16,19 @@ public class SerializationFactory {
         Kryo kryo = new Kryo();
         kryo.register(HashMap.class);
         kryo.register(byte[].class);
-        kryo.register(boolean[].class);
         kryo.register(String.class);
         kryo.register(LocalCoord.class, lss);
+        kryo.register(boolean.class);
         kryo.register(ChunkValues.class);
+
         return kryo;
     }
 
     public static Input newChunkInput(){
-        return new Input(4096);
+        return new Input(8192);
     }
 
     public static Output newChunkOutput(){
-        return new Output(4096);
+        return new Output(8192);
     }
 }

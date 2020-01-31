@@ -2,6 +2,7 @@ package Factories;
 
 import Factories.Executors.SPSCRunnerWrapper;
 
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -11,6 +12,7 @@ public final class HyperScheduler {
     public final static SPSCRunnerWrapper worldDataUpdater;
     public final static ThreadPoolExecutor worldLoader;
     public final static SPSCRunnerWrapper generalExecutor;
+    public final static ScheduledThreadPoolExecutor scheduledExecutor;
 
     static{
         worldDataUpdater =
@@ -19,5 +21,8 @@ public final class HyperScheduler {
             new ThreadPoolExecutor(0, 1000, 20, TimeUnit.SECONDS,new SynchronousQueue<>(), new HyperThreader(10,"World Loader"));
         generalExecutor =
             new SPSCRunnerWrapper(10,1,"General Executor");
+        scheduledExecutor = new ScheduledThreadPoolExecutor(1,new HyperThreader(10,"Scheduled Thread"));
+        scheduledExecutor.setMaximumPoolSize(1);
+        scheduledExecutor.setKeepAliveTime(5,TimeUnit.MINUTES);
     }
 }

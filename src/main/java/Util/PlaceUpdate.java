@@ -2,10 +2,11 @@ package Util;
 
 import PositionalKeys.ChunkCoord;
 import PositionalKeys.LocalCoord;
-import Settings.HSettings;
+import Settings.WorldRules;
 import Storage.ChunkValues;
 import Storage.FastUpdateHandler;
 import Storage.ValueStorage;
+import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 
@@ -19,7 +20,7 @@ import static PositionalKeys.HyperKeys.localCoord;
 public class PlaceUpdate {
 
     private ValueStorage vs;
-    private final int tensilerange = HSettings.TENSILE_RANGE;
+    private final int tensilerange = WorldRules.TENSILE_RANGE;
 
     public PlaceUpdate(ValueStorage vs, FastUpdateHandler updateHandler){
 
@@ -132,17 +133,17 @@ public class PlaceUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(new ChunkCoord(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 
-                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126, 0, 0, 0, 0, 0});
+                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
 
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[2]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
                 tenseVals[loop]=t[0];
             }
 
-            valref = Mathz.lowestTensile(tenseVals);
+            valref = DataUtil.lowestTensile(tenseVals);
             relChunk = 9*r[0]+r[1];
             chunkVals[relChunk].get(l)[0]=valref;
 
@@ -187,9 +188,7 @@ public class PlaceUpdate {
         coordQ.add(lc);
         chunkRef.add(rcr[relChunk]);
         checked[(relChunk<<16)|(lc.parsedCoord & 0xffff)]=true;
-        //move outside, don't need to now
         chunkVals[relChunk] = localValues;
-        chunkVals[relChunk].get(lc)[2]=1;
         chunkMark.add(rcr[relChunk]);
 
         while(!coordQ.isEmpty()) {
@@ -245,17 +244,17 @@ public class PlaceUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(new ChunkCoord(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 
-                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126, 0, 0, 0, 0, 0});
+                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
 
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[2]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
                 tenseVals[loop]=t[0];
             }
 
-            valref = Mathz.lowestTensile(tenseVals);
+            valref = DataUtil.lowestTensile(tenseVals);
             relChunk = 9*r[0]+r[1];
             chunkVals[relChunk].get(l)[0]=valref;
 
@@ -287,13 +286,13 @@ public class PlaceUpdate {
         byte valref;
         byte[] t;
         LocalCoord l;
-        ChunkCoord cc = new ChunkCoord((c.getX()<<16)|c.getZ());
+        ChunkCoord cc = Coords.CHUNK(c.getX(),c.getZ());
         vs.chunkValues.put(cc, new ChunkValues());
         HashMap<LocalCoord,byte[]> chunkVals = vs.chunkValues.get(cc).blockVals;
 
         for (loop=-1; ++loop<256;) {
             l = localCoord[loop];
-            chunkVals.put(l, new byte[]{0, 127, 0, 0, 0, 0});
+            chunkVals.put(l, new byte[]{0,0,127,0,0,0,0,0,0,0,0,0,0});
             ccoordQ.add(l);
         }
 
@@ -329,7 +328,7 @@ public class PlaceUpdate {
                     parsedCoord = cls[loop].parsedCoord;
                     Material thisBlock = Material.getMaterial(c.getBlockTypeId(parsedCoord << 24 >>> 28, parsedCoord >>> 8, parsedCoord << 28 >>> 28));
                     if(thisBlock==null) thisBlock=Material.AIR;
-                    t = chunkVals.computeIfAbsent(cls[loop], n -> new byte[]{126, 1, 1, 0, 0, 0});
+                    t = chunkVals.computeIfAbsent(cls[loop], n -> new byte[]{126,126,1,1,0,0,0,0,0,0,0,0,0});
                     switch (thisBlock) {
                         case STATIONARY_LAVA:
                         case STATIONARY_WATER:
@@ -349,12 +348,12 @@ public class PlaceUpdate {
                             t[2] = 0;
                             break;
                     }
-                    cms[loop] = !(cchecked[cls[loop].parsedCoord & 0xffff] || t[2] == 0);
+                    cms[loop] = !(cchecked[cls[loop].parsedCoord & 0xffff] || t[3] == 0);
                     ctenseVals[loop] = t[0];
                 }
             }
 
-            valref = Mathz.lowestTensile(ctenseVals);
+            valref = DataUtil.lowestTensile(ctenseVals);
             chunkVals.get(l)[0]=valref;
 
             for (loop=-1; ++loop<6;) {
@@ -377,7 +376,7 @@ public class PlaceUpdate {
         byte[] t;
         byte xc;
         byte zc;
-        byte range = HSettings.TENSILE_RANGE;
+        byte range = WorldRules.TENSILE_RANGE;
         int parsedCoord, relChunk;
         LocalCoord l;
 
@@ -392,17 +391,19 @@ public class PlaceUpdate {
 
         for(byte[] rl:chunkMark){
             relChunk=9*rl[0]+rl[1];
-            l = updtPtrs[relChunk].poll();
+            l = updtPtrs[relChunk].pollLast();
             while (l!=null){
                 coordQ.add(l);
                 chunkRef.add(rl);
-                l=updtPtrs[relChunk].poll();
+                l=updtPtrs[relChunk].pollLast();
             }
         }
 
         while(!coordQ.isEmpty()) {
 
             l = coordQ.poll(); r = chunkRef.poll(); parsedCoord = l.parsedCoord; xc = r[0]; zc = r[1];
+            if(xc>6||xc<2) Bukkit.broadcastMessage("xc out of bounds! reupdate "+ xc);
+            if(zc>6||zc<2)Bukkit.broadcastMessage("zc out of bounds! reupdate "+ zc);
             //z pos get
             if(parsedCoord<<28>>>28==15){
                 ls[0]= localCoord[(parsedCoord<<16>>>24<<8)|(parsedCoord<<24>>>28<<4)];
@@ -446,14 +447,16 @@ public class PlaceUpdate {
             for (loop=-1; ++loop<6;) {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(new ChunkCoord(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
-                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126, 0, 0, 0, 0, 0});
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[2]==0);
+                t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
                 tenseVals[loop]=t[0];
             }
-            valref = Mathz.lowestTensile(tenseVals); relChunk = 9*r[0]+r[1]; chunkVals[relChunk].get(l)[0]=valref;
+            valref = DataUtil.lowestTensile(tenseVals);
+            relChunk = 9*r[0]+r[1];
+            chunkVals[relChunk].get(l)[0]=valref;
             if (valref >= range) {
                 fallQuery[relChunk].add(l);
             }

@@ -5,19 +5,15 @@ import java.util.Objects;
 public final class ChunkCoord {
 
     public final int parsedCoord;
-    public final int h;
+    private final int h;
 
     public ChunkCoord(int xl, int zl) {
-        parsedCoord=(xl<<16)|zl;
+        parsedCoord=(xl<<16)|(zl&0x0000ffff);
         h = Objects.hash(parsedCoord);
     }
     public ChunkCoord(int xz) {
         parsedCoord=xz;
         h = Objects.hash(parsedCoord);
-    }
-
-    public int[] getCoord() {
-        return new int[]{parsedCoord>>16,parsedCoord<<16>>16};
     }
 
     @Override

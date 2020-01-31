@@ -8,6 +8,7 @@
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/objenesis/objenesis/3.0.1/objenesis-3.0.1.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/jctools/jctools-core/2.1.1/jctools-core-2.1.1.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$USER_HOME$/Downloads/kryo-5.0.0-RC4.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../Plugin APIs javadocs/fastutil-8.3.0.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>
