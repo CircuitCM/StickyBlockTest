@@ -18,11 +18,9 @@ public final class HyperScheduler {
         worldDataUpdater =
             new SPSCRunnerWrapper(120,10,"World Data Updater");
         worldLoader =
-            new ThreadPoolExecutor(0, 1000, 20, TimeUnit.SECONDS,new SynchronousQueue<>(), new HyperThreader(10,"World Loader"));
+            new ThreadPoolExecutor(0, 1, 20, TimeUnit.SECONDS,new SynchronousQueue<>(), new HyperThreader(1,"World Loader"));
         generalExecutor =
             new SPSCRunnerWrapper(10,1,"General Executor");
-        scheduledExecutor = new ScheduledThreadPoolExecutor(1,new HyperThreader(10,"Scheduled Thread"));
-        scheduledExecutor.setMaximumPoolSize(1);
-        scheduledExecutor.setKeepAliveTime(5,TimeUnit.MINUTES);
+        scheduledExecutor = new ScheduledThreadPoolExecutor(1,new HyperThreader(1,"Scheduled Thread"));
     }
 }

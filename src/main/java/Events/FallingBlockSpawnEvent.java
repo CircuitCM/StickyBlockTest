@@ -8,7 +8,10 @@ import org.bukkit.event.HandlerList;
 import java.util.ArrayList;
 
 public final class FallingBlockSpawnEvent extends Event {
-    private static final HandlerList handlers = new HandlerList();
+    private static final HandlerList handlers;
+    static{
+        handlers = new HandlerList();
+    }
     private final ArrayList<Block> blocks;
     private final FallingBlock[] fbs;
 

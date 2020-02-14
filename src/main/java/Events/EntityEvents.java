@@ -4,10 +4,12 @@ import Cores.WorldDataCore;
 import PositionalKeys.ChunkCoord;
 import PositionalKeys.HyperKeys;
 import PositionalKeys.LocalCoord;
-import Settings.WorldRules;
 import Storage.ChunkValues;
 import Util.Coords;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -45,7 +47,7 @@ public class EntityEvents implements Listener {
 
     @EventHandler
     public void playerSpawn(PlayerJoinEvent e){
-       e.getPlayer().teleport(new Location(WorldRules.GAME_WORLD, 500, 34, 500));
+       e.getPlayer().teleport(Bukkit.getWorld("world").getBlockAt(500,30,500).getLocation());
     }
 
     private void stickChecker(PlayerInteractEvent e) {
@@ -73,6 +75,18 @@ public class EntityEvents implements Listener {
                             }
                         }
                     }
+                }
+            }
+            return;
+        }
+        if (p.getItemInHand().getType() == Material.DIAMOND_SPADE) {
+            Chunk c = e.getPlayer().getLocation().getChunk();
+            ChunkValues cv = chunkData.get(Coords.CHUNK(c.getX(), c.getZ()));
+            if (cv == null) return;
+            float[] ySlope = cv.ySlopeTracker;
+            for (int x = 16; --x > -1; ) {
+                for (int z = 16; --z > -1; ) {
+                    c.getBlock(x,(int)(ySlope[0]+(ySlope[1]*x)+(ySlope[2]*z)+(ySlope[3]*(x*x))+(ySlope[4]*(z*z))+(ySlope[5]*(x*x*x))+(ySlope[6]*(z*z*z)))+10,z).setType(Material.STONE);
                 }
             }
             return;

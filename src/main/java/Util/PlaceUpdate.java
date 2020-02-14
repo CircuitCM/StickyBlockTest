@@ -3,7 +3,6 @@ package Util;
 import PositionalKeys.ChunkCoord;
 import PositionalKeys.LocalCoord;
 import Settings.WorldRules;
-import Storage.ChunkValues;
 import Storage.FastUpdateHandler;
 import Storage.ValueStorage;
 import org.bukkit.Bukkit;
@@ -287,7 +286,6 @@ public class PlaceUpdate {
         byte[] t;
         LocalCoord l;
         ChunkCoord cc = Coords.CHUNK(c.getX(),c.getZ());
-        vs.chunkValues.put(cc, new ChunkValues());
         HashMap<LocalCoord,byte[]> chunkVals = vs.chunkValues.get(cc).blockVals;
 
         for (loop=-1; ++loop<256;) {

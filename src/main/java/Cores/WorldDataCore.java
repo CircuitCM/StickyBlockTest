@@ -7,17 +7,15 @@ import PositionalKeys.ChunkCoord;
 import PositionalKeys.HyperKeys;
 import PositionalKeys.LocalCoord;
 import Settings.WorldRules;
-import Storage.ChunkValues;
-import Storage.FastUpdateHandler;
-import Storage.KryoIO;
-import Storage.ValueStorage;
+import Storage.*;
 import Util.*;
 import it.unimi.dsi.fastutil.Hash;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.Int2ByteOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
+import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -64,7 +62,8 @@ public class WorldDataCore {
         relValues = up.chunkValueHolder;
         pu = new PlaceUpdate(vs, up);
         bu = new BreakUpdate(vs, up);
-        kryoIO.setTerraKryoIO(cache_Count,terra_IOCache);
+        kryoIO.setTerraKryoIO(cache_Count,terra_IOCache,yRegionTracker);
+        kryoIO.setWorldKryoIO(chunkValues);
         this.kryoIO=kryoIO;
         HyperScheduler.scheduledExecutor.scheduleAtFixedRate(this::startTerraGuardian,45,20, TimeUnit.SECONDS);
     }
@@ -260,7 +259,7 @@ public class WorldDataCore {
     }
 
     public void explosionUpdate(Block[] brokeBlocks,ChunkCoord cc, HashMap<LocalCoord,byte[]> localValues) {
-        int rx,rz, x=cc.parsedCoord>>16,z=cc.parsedCoord<<16>>16,relchunk,plc /*local coord*/; World w = WorldRules.GAME_WORLD;
+        int rx,rz, x=cc.parsedCoord>>16,z=cc.parsedCoord<<16>>16,relchunk,plc /*local coord*/; World w = Bukkit.getWorld("world");
 
         bu.multiBreak(cc,localValues,brokeBlocks);
         pu.reUpdate(cc);
@@ -346,7 +345,7 @@ public class WorldDataCore {
     }
 
     private void injectFallingBlocks(ArrayList<Block> blocks){
-        int size=blocks.size(), loop; Block block; Location l; Material m; byte d; World w= WorldRules.GAME_WORLD;
+        int size=blocks.size(), loop; Block block; Location l; Material m; byte d; World w= Bukkit.getWorld(WorldRules.WORLD_ID);
 
         if(size>1) blocks.sort(sortBlocksY);
         final FallingBlock[] fallingBlocks = new FallingBlock[size];
@@ -484,6 +483,7 @@ public class WorldDataCore {
     //scheduled editing collections, should have limited size by their offload factors
     public volatile boolean degenTaskActive=false;
     public volatile boolean formTaskActive=false;
+    public final Short2ObjectOpenHashMap<YGenTracker> yRegionTracker = new Short2ObjectOpenHashMap<YGenTracker>(4,0.8F);
     private final DataUtil.YBlockTerraSort yTSort = new DataUtil.YBlockTerraSort(chunkValues);
     private final LinkedList<Block> terraDegen = new LinkedList<>();
     private final ObjectArrayList<Block> terraForm = new ObjectArrayList<>(256);
@@ -511,9 +511,8 @@ public class WorldDataCore {
         int size, loop, g_time = WorldRules.G_TIME;
         ObjectArrayList<Block> toDegen;
         ObjectArrayList<Block> toForm;
-        IntOpenHashSet toOverride = new IntOpenHashSet(16, Hash.FAST_LOAD_FACTOR);
+        Int2ByteOpenHashMap toOverride = new Int2ByteOpenHashMap(16, Hash.FAST_LOAD_FACTOR);
         if(!degenTaskActive) {
-
             Bukkit.broadcastMessage("Pt1");
             while ((b = terraDegen_Entry.relaxedPoll()) != null) {
                 if (updateCachePriority(b, toOverride, g_time, Operator.DEGEN)) {
@@ -529,7 +528,7 @@ public class WorldDataCore {
             Bukkit.broadcastMessage("Cache count after degen entries: "+cache_Count);
             Bukkit.broadcastMessage("Pt3");
             if (!terraDegen.isEmpty()) {
-                toDegen = new ObjectArrayList<>(terraDegen.size() >>>2);
+                toDegen = new ObjectArrayList<>(terraDegen.size() >>>8);
                 ListIterator<Block> itr = terraDegen.listIterator();
                 while (itr.hasNext()) {
                     b = itr.next();
@@ -541,7 +540,7 @@ public class WorldDataCore {
                 if (!toDegen.isEmpty()) {
                     Bukkit.broadcastMessage("Starting Terra degen");
                     degenTaskActive = true;
-                    new DegenBlocks(toDegen, this).runTaskTimer(i, 10, 2);
+                    new DegenBlocks(toDegen, toOverride,this).runTaskTimer(i, 20, 2);
                 }
                 itr = terraDegen.listIterator();
                 while (itr.hasNext()) {
@@ -579,10 +578,10 @@ public class WorldDataCore {
                 if (!toForm.isEmpty()) {
                     Bukkit.broadcastMessage("Starting Terra Form");
                     formTaskActive = true;
-                    new FormBlocks(toForm, toOverride, this, (size >> 11) + 4).runTaskTimer(i, 10, 3);
+                    new FormBlocks(toForm, toOverride, this, (size >> 11) + 2).runTaskTimer(i, 22, 3);
                 }
                 while(--size>-1) {
-                    terraForm_IOEntry.enqueue(terraForm.pop());
+                    terraForm_IOEntry.enqueueFirst(terraForm.pop());
                 }
             } else {
                 if (formTaskActive) {
@@ -601,12 +600,12 @@ public class WorldDataCore {
         Bukkit.broadcastMessage("Completing Cycle");
     }
 
-    private final boolean updateCachePriority(Block b, IntOpenHashSet toOverride, int g_time, Operator operator) {
+    private final boolean updateCachePriority(Block b, Int2ByteOpenHashMap toOverride, int g_time, Operator operator) {
         int x=b.getX(),z=b.getZ();
         LocalCoord lc = HyperKeys.localCoord[(b.getY() << 8) | (x << 28 >>> 28 << 4) | (z << 28 >>> 28)];
         LCtoByteQ bq;
         assertLocalChunk_t(x>>4,z>>4);
-        terra_IOCache.putIfAbsent(tchunkCoord, new LCtoByteQ());
+        terra_IOCache.putIfAbsent(tchunkCoord, new LCtoByteQ(64));
 //        Bukkit.broadcastMessage("Updating cache");
         if (tlocValues==null||!tlocValues.isLoaded) {
             bq = terra_IOCache.getAndMoveToFirst(tchunkCoord);
@@ -628,10 +627,15 @@ public class WorldDataCore {
                 }
                 return false;
             }else{
-                toOverride.add(tchunkCoord.parsedCoord);
                 tlocValues.overrideUnload=true;
+
+                int i =toOverride.get(tchunkCoord.parsedCoord)&0xff;
+                if(i!=255){
+                    if(operator==Operator.FORM&&i!=15)toOverride.put(tchunkCoord.parsedCoord,(byte)(i|15));
+                    else if(i!=240)toOverride.put(tchunkCoord.parsedCoord,(byte)(240|i));
+
+                }
             }
-            Bukkit.broadcastMessage("pt4");
         }
         Bukkit.broadcastMessage("pt5");
         return true;

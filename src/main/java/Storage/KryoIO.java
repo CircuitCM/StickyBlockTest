@@ -1,5 +1,6 @@
 package Storage;
 
+import Events.PostChunkGenEvent;
 import PositionalKeys.ChunkCoord;
 import PositionalKeys.LocalCoord;
 import Settings.WorldRules;
@@ -16,6 +17,7 @@ import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.block.Block;
@@ -36,21 +38,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KryoIO {
 
-    public Pool<Kryo> kryoPool = new Pool<Kryo>(true, true, 2) {
+    public Pool<Kryo> kryoPool = new Pool<Kryo>(true, true, 4) {
         protected Kryo create () {
             return SerializationFactory.newChunkKryo();
         }
     };
 
-    public Pool<Input> inputPool = new Pool<Input>(true, false, 2) {
+    public Pool<Input> inputPool = new Pool<Input>(true, true, 4) {
         protected Input create () {
             return SerializationFactory.newChunkInput();
         }
     };
 
-    public Pool<Output> outputPool = new Pool<Output>(true, false, 2) {
+    public Pool<Output> outputPool = new Pool<Output>(true, true, 4) {
         protected Output create () {
-            return new Output(2048);
+            return SerializationFactory.newChunkOutput();
         }
     };
 
@@ -60,19 +62,22 @@ public class KryoIO {
     public final Path pluginPath;
     public final Path chunkPath;
     public final Path terraPath;
+    public final Path yRegionPath;
     public final String cdString;
     public final String terraString;
 
     private NonBlockingHashMap<ChunkCoord,ChunkValues> chunkData;
+    private Short2ObjectOpenHashMap<YTracker> yRegionTracker;
 
 
     public void setWorldKryoIO(NonBlockingHashMap<ChunkCoord,ChunkValues> chunkData){
         this.chunkData=chunkData;
     }
 
-    public void setTerraKryoIO(int cache_Count, Object2ObjectLinkedOpenHashMap<ChunkCoord, LCtoByteQ> terra_IOCache){
+    public void setTerraKryoIO(int cache_Count, Object2ObjectLinkedOpenHashMap<ChunkCoord, LCtoByteQ> terra_IOCache, Short2ObjectOpenHashMap<YTracker> yRegionTracker){
         this.cache_Count= cache_Count;
         this.terra_IOCache = terra_IOCache;
+        this.yRegionTracker = yRegionTracker;
     }
 
     public KryoIO(JavaPlugin p){
@@ -80,6 +85,7 @@ public class KryoIO {
         pluginPath = p.getDataFolder().toPath();
         chunkPath = pluginPath.resolve("ChunkData");
         terraPath = pluginPath.resolve("TerraData");
+        yRegionPath = pluginPath.resolve("yRegionData");
         cdString = chunkPath.toString();
         terraString = terraPath.toString();
 
@@ -105,6 +111,13 @@ public class KryoIO {
                 e.printStackTrace();
             }
         }
+        if(!Files.exists(yRegionPath)){
+            try {
+                Files.createDirectory(yRegionPath);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         b("Chunk Saver Started");
     }
 
@@ -118,34 +131,48 @@ public class KryoIO {
         }*/
         Kryo kryo = kryoPool.obtain();
         Input input = inputPool.obtain();
-        ChunkCoord cc; ChunkValues cv; Chunk c;
+        ChunkCoord cc; ChunkValues cv; Chunk c; int xz;short xz8; YTracker yg;
         while((chunkEvent=chunkLoadQuery.relaxedPoll())!=null){
             if ((c = chunkEvent.getChunk()) != null) {
                 if(chunkEvent.getClass()== ChunkLoadEvent.class) {
                     if (!((ChunkLoadEvent) chunkEvent).isNewChunk()) {
                         cc = Coords.CHUNK(c);
                         if (chunkSaveQuery.remove(cc)) {
-                            chunkData.get(cc).isLoaded = true;
+                            if(!(cv=chunkData.get(cc)).isLoaded)cv.isLoaded=true;
                         } else {
                             loadChunkValuesFile(cc, kryo, input);
                         }
                     }
                 }else if(chunkEvent.getClass()== ChunkUnloadEvent.class){
-                    cc =Coords.CHUNK(c);
-                    if ((cv=chunkData.get(cc))!=null) {
+                    xz=(cc =Coords.CHUNK(c)).parsedCoord;
+                    xz8=(short)((xz>>>19<<8)|((xz>>>3)&0b011111111));
+                    if (chunkData.containsKey(cc)) {
                         if(chunkSaveQuery.addAndMoveToFirst(cc)){
-                            cv.isLoaded = false;
+                            yg=yRegionTracker.get(xz8);
+                            --yg.load2x_chunk[(((xz>>>17)&4)<<2)|((xz>>>1)&4)];
                         }
                     }
+                }else if(chunkEvent.getClass()== PostChunkGenEvent.class){
+                    PostChunkGenEvent postGen = (PostChunkGenEvent) chunkEvent;
+                    cv=new ChunkValues();
+                    DataUtil.populateBlockData(cv,postGen.yNoise);
+                    xz=postGen.XZ;
+                    xz8=(short)((xz>>>19<<8)|((xz>>>3)&0b011111111));
+                    if((yg=yRegionTracker.putIfAbsent(xz8,new YGenTracker())).partition_lvl!=1){
+                        ++yg.load2x_chunk[(((xz>>>17)&4)<<2)|((xz>>>1)&4)];
+                        DataUtil.loadChunkRegression((((xz>>>16)&8)<<3)|(xz&8),postGen.yNoise,(YGenTracker)yg);
+                    }
+                    cc =Coords.CHUNK(xz);
+                    chunkData.put(cc,cv);
                 }
             }
         }
         int g_time=WorldRules.G_TIME;
-        if(lastSaveProcess<g_time-1){
+        if(lastSaveProcess<g_time){
             Bukkit.broadcastMessage("Save Process triggered");
             lastSaveProcess=g_time;
             Output output = outputPool.obtain();
-            saveChunkValuesFiles(kryo,output,0.2D);
+            saveChunkValuesFiles(kryo,output,0.5D);
             output.close();
             outputPool.free(output);
         }
@@ -166,7 +193,6 @@ public class KryoIO {
             }
             b("Loading: " + Coords.CHUNK_STRING(cc));
             ChunkValues cv = kryo.readObject(input, ChunkValues.class);
-            DataUtil.initYNoiseMarker(cv);
             chunkData.putIfAbsent(cc, cv);
         }
     }
@@ -179,7 +205,7 @@ public class KryoIO {
            if(offload_size<1){
                offload_size=1;
            }
-           ChunkCoord cc; ChunkValues cvs; File cf;
+           ChunkCoord cc; ChunkValues cvs; File cf; short xz8; int xz; YTracker ytrack; Path p;
            while(--offload_size>-1){
                cc= chunkSaveQuery.removeLast();
                if((cvs = chunkData.get(cc))==null)continue;
@@ -206,6 +232,33 @@ public class KryoIO {
                    output.getOutputStream().close();
                } catch (IOException e) {
                    e.printStackTrace();
+               }
+               xz= cc.parsedCoord;
+               xz8=(short)((xz>>>19<<8)|((xz>>>3)&0b011111111));
+               if((ytrack=yRegionTracker.get(xz8))!=null&&DataUtil.regionLoad(ytrack.load2x_chunk)<1){
+                   p=(yRegionPath).resolve((xz8>>>8)+","+(xz8&0b011111111)+".dat");
+                   if(ytrack.getClass()==YGenTracker.class) {
+                       if (!Files.exists(p)) {
+                           try {
+                              Files.createFile(p).toFile();
+                           } catch (IOException e) {
+                               e.printStackTrace();
+                           }
+                           try {
+                               output.setOutputStream(Files.newOutputStream(p));
+                           } catch (IOException e) {
+                               e.printStackTrace();
+                           }
+                           output.writeFloats(ytrack.y_est_final,0,33);
+                           output.flush();
+                           try {
+                               output.getOutputStream().close();
+                           } catch (IOException e) {
+                               e.printStackTrace();
+                           }
+                       }
+                   }
+                   yRegionTracker.remove(xz8);
                }
                chunkData.remove(cc);
            }

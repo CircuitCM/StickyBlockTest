@@ -4,7 +4,6 @@ import Events.BlockEvents;
 import Events.ChunkEvents;
 import Events.EntityEvents;
 import Factories.WorldGenerators.HyperChunkGenerator;
-import PositionalKeys.HyperKeys;
 import Storage.KryoIO;
 import Util.XRSR128pRand;
 import org.bukkit.ChatColor;
@@ -24,18 +23,21 @@ public class HyperForts extends JavaPlugin {
     private final XRSR128pRand rand=new XRSR128pRand(ThreadLocalRandom.current().nextLong()*System.currentTimeMillis(),System.nanoTime()*System.currentTimeMillis());
 
     public HyperForts() {
-        HyperKeys.init(9);
         rand.nextLong();
         kryoStorage= new KryoIO(this);
         worldDataCore = new WorldDataCore(kryoStorage);
+        chunkEvents = new ChunkEvents(worldDataCore);
+
     }
+
+    private ChunkEvents chunkEvents;
 
     @Override
     public void onEnable() {
         new CustomItemCreator();
         worldDataCore.i=this;
         getPluginManager().registerEvents(new BlockEvents(worldDataCore,this), this);
-        getPluginManager().registerEvents(new ChunkEvents(worldDataCore), this);
+        getPluginManager().registerEvents(chunkEvents, this);
         getPluginManager().registerEvents(new EntityEvents(worldDataCore,this), this);
         getConsoleSender().sendMessage(ChatColor.AQUA + "\nBlock Physics Test Initialized");
     }
@@ -47,7 +49,7 @@ public class HyperForts extends JavaPlugin {
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
-        return new HyperChunkGenerator(worldDataCore,rand);
+        return new HyperChunkGenerator(chunkEvents, rand);
     }
 
 }

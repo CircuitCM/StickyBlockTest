@@ -18,10 +18,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ChunkEvents implements Listener {
 
 
-    private final NonBlockingHashMap<ChunkCoord, ChunkValues> chunkData;
-    private final KryoIO kd;
-    private final AtomicBoolean notProccessing = new AtomicBoolean(true);
-    private final SpscArrayQueue<ChunkEvent> chunkLoadQuery = new SpscArrayQueue<>(8192);
+    public final NonBlockingHashMap<ChunkCoord, ChunkValues> chunkData;
+    public final KryoIO kd;
+    public final AtomicBoolean notProccessing = new AtomicBoolean(true);
+    public final SpscArrayQueue<ChunkEvent> chunkLoadQuery = new SpscArrayQueue<>(8192);
 
     public ChunkEvents(WorldDataCore wd) {
         kd = wd.kryoIO;
@@ -29,7 +29,15 @@ public class ChunkEvents implements Listener {
     }
 
     @EventHandler
-    private void chunkUnload(ChunkUnloadEvent e){
+    private void chunkLoadListener(ChunkLoadEvent e){
+        chunkLoadQuery.relaxedOffer(e);
+        if(notProccessing.get()&&chunkLoadQuery.size()>24){
+            notProccessing.set(false);
+            HyperScheduler.worldLoader.execute(() -> kd.processChunks(chunkLoadQuery, notProccessing));
+        }
+    }
+    @EventHandler
+    private void chunkLoadListener(ChunkUnloadEvent e){
         chunkLoadQuery.relaxedOffer(e);
         if(notProccessing.get()&&chunkLoadQuery.size()>24){
             notProccessing.set(false);
@@ -37,12 +45,20 @@ public class ChunkEvents implements Listener {
         }
     }
 
-    @EventHandler
+    public void submitPostGenEvent(PostChunkGenEvent e){
+        chunkLoadQuery.relaxedOffer(e);
+        if(notProccessing.get()&&chunkLoadQuery.size()>24){
+            notProccessing.set(false);
+            HyperScheduler.worldLoader.execute(() -> kd.processChunks(chunkLoadQuery, notProccessing));
+        }
+    }
+
+    /*@EventHandler
     private void chunkLoad(ChunkLoadEvent e){
         chunkLoadQuery.relaxedOffer(e);
         if (notProccessing.get()&&chunkLoadQuery.size()>24) {
             notProccessing.set(false);
             HyperScheduler.worldLoader.execute(() -> kd.processChunks(chunkLoadQuery, notProccessing));
         }
-    }
+    }*/
 }

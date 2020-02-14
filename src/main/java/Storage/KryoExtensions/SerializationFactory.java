@@ -5,8 +5,8 @@ import Storage.ChunkValues;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-
-import java.util.HashMap;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import org.objenesis.strategy.StdInstantiatorStrategy;
 
 public class SerializationFactory {
 
@@ -14,13 +14,11 @@ public class SerializationFactory {
 
     public static Kryo newChunkKryo(){
         Kryo kryo = new Kryo();
-        kryo.register(HashMap.class);
-        kryo.register(byte[].class);
-        kryo.register(String.class);
-        kryo.register(LocalCoord.class, lss);
-        kryo.register(boolean.class);
+        kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
+        kryo.setDefaultSerializer(FieldSerializer.class);
+        kryo.setRegistrationRequired(false);
         kryo.register(ChunkValues.class);
-
+        kryo.register(LocalCoord.class).setSerializer(lss);
         return kryo;
     }
 

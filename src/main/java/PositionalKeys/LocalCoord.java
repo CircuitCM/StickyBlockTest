@@ -19,7 +19,6 @@ public final class LocalCoord{
 
     @Override
     public boolean equals(Object o) {
-        if(o==null)return false;
         return ((LocalCoord) o).parsedCoord == this.parsedCoord;
     }
 }

@@ -5,19 +5,19 @@ import org.bukkit.Bukkit;
 public class HyperKeys {
 
     public final static LocalCoord[] localCoord = new LocalCoord[65536];
-    public static ChunkCoord[] CHUNK_COORDS;
+    public final static ChunkCoord[] CHUNK_COORDS;
     public static int COORDMAX;
     public static int CHUNK_SHIFT;
 
 
-    public static void init(int xz_shift_offset){
+    static{
         int loop;
         for(loop=-1;++loop<65536;){
             localCoord[loop] = new LocalCoord((short)loop);
         }
 
-        CHUNK_SHIFT=xz_shift_offset;
-        int xzsize =1<<xz_shift_offset;
+        CHUNK_SHIFT=9;
+        int xzsize =1<<9;
         CHUNK_COORDS = new ChunkCoord[xzsize*xzsize];
         int coordmax=xzsize>>>1;
         COORDMAX=coordmax;
@@ -25,7 +25,7 @@ public class HyperKeys {
         int loop2;
         int arraypos;
         for(loop=coordmin;++loop<coordmax;){
-            arraypos=(loop+coordmax)<<xz_shift_offset;
+            arraypos=(loop+coordmax)<<9;
             for(loop2=coordmin;++loop2<coordmax;){
                 CHUNK_COORDS[arraypos|(loop2+coordmax)]=new ChunkCoord(loop,loop2);
             }

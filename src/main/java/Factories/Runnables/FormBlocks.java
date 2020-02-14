@@ -4,7 +4,7 @@ import Cores.WorldDataCore;
 import PositionalKeys.ChunkCoord;
 import Storage.ChunkValues;
 import Util.Coords;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.Int2ByteOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -15,13 +15,13 @@ public class FormBlocks extends BukkitRunnable {
 
     private final ObjectArrayList<Block> toForm;
     private final WorldDataCore worldDataCore;
-    private final IntOpenHashSet toOverrideForm;
+    private final Int2ByteOpenHashMap toOverrideForm;
     private final int SIZE;
     private int loop=-1;
 
     private final int placebatch;
 
-    public FormBlocks(ObjectArrayList<Block> toForm, IntOpenHashSet toOverrideForm, WorldDataCore wd, int placeBatch) {
+    public FormBlocks(ObjectArrayList<Block> toForm, Int2ByteOpenHashMap toOverrideForm, WorldDataCore wd, int placeBatch) {
         this.placebatch=placeBatch;
         this.toForm=toForm;
         this.toOverrideForm=toOverrideForm;
@@ -31,25 +31,36 @@ public class FormBlocks extends BukkitRunnable {
 
     @Override
     public void run() {
-        Chunk c;
         if (loop >=SIZE) {
-            int a;
-            int[] n;
-            ChunkCoord cc; ChunkValues cv;
-            for (a = (n = toOverrideForm.toIntArray()).length; --a >= 0; ) {
-                cc=Coords.CHUNK(n[a]);
-                (cv=worldDataCore.chunkValues.get(cc)).overrideUnload = false;
-                if((c=Coords.CHUNK_AT(cc)).unload(false,true)){
-                    cv.isLoaded = false;
-                }else cv.isLoaded = c.isLoaded();
-                if(!cv.isLoaded)Bukkit.broadcastMessage("Chunk marked as unloaded");
-                else Bukkit.broadcastMessage("Chunk marked as loaded");
+            int[] keyset = toOverrideForm.keySet().toIntArray();
+            for(int i = keyset.length;--i>-1;){
+                int pos = keyset[i], bit = toOverrideForm.get(pos)&0xff;
+                Bukkit.broadcastMessage("remove form chunk iterated");
+                switch (bit){
+                    case 255:
+                        toOverrideForm.put(pos,(byte)240);
+                    case 240:
+                        break;
+                    case 0:
+                        toOverrideForm.remove(pos);
+                        break;
+                    case 15:
+                        toOverrideForm.remove(pos);
+                        ChunkCoord cc = Coords.CHUNK(pos);
+                        ChunkValues cv =worldDataCore.chunkValues.get(cc);
+                        cv.overrideUnload = false;
+                        Chunk c =Coords.CHUNK_AT(cc);
+                        c.unload(false,true);
+                        if(cv.isLoaded&&!c.isLoaded()) cv.isLoaded = false;
+                        if(!cv.isLoaded)Bukkit.broadcastMessage("Chunk marked as unloaded in Form");
+                        else Bukkit.broadcastMessage("Chunk marked as loaded in Form");
+                }
             }
-            worldDataCore.formTaskActive=false;
             Bukkit.broadcastMessage("canceling terra form at "+loop);
+            worldDataCore.formTaskActive=false;
             this.cancel();
         }else {
-            Block b;
+            Block b; Chunk c;
             /*int unloadLoop;*/
             for (int batchloop = -1; ++batchloop < placebatch && loop++ < SIZE; ) {
                 /* unloadLoop=16;*/

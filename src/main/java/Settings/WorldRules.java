@@ -9,6 +9,7 @@ import org.bukkit.block.Biome;
 
 import java.util.EnumMap;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.bukkit.Material.*;
@@ -78,6 +79,7 @@ public final class WorldRules {
     public static double EXP_MULTIPLIER_LUCK_PER_LEVEL = 1.5;
     public static double EXP_MULTIPLIER_FORTUNE_PER_LEVEL = 1.5;
     public static World GAME_WORLD;
+    public static UUID WORLD_ID;
 
     /*Within saved world data:
     {0-load structural,1-load literal,2-health,3-type, 4- isnatural terrain, 5- extra Placeholder,
@@ -105,7 +107,7 @@ public final class WorldRules {
     /* type variables - 1 load max, 2 health max, 3 load binary shift multiple, */
 
     static{
-       GAME_WORLD=Bukkit.getWorld("world");
+        GAME_WORLD=Bukkit.getWorld("world");
     }
 
     static {
