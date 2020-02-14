@@ -9,6 +9,7 @@ import Storage.FastUpdateHandler;
 import Storage.ValueStorage;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
+import org.jctools.maps.NonBlockingHashMap;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -18,7 +19,7 @@ import java.util.Queue;
 
 public class PlaceUpdate {
 
-    private ValueStorage vs;
+    private NonBlockingHashMap<ChunkCoord, ChunkValues> chunkData;
 
     public PlaceUpdate(ValueStorage vs, FastUpdateHandler updateHandler){
 
@@ -28,7 +29,7 @@ public class PlaceUpdate {
         fallQuery = updateHandler.blockFallQuery;
         rcr = updateHandler.relativeChunkReference;
         updtPtrs = updateHandler.blockUpdate;
-        this.vs= vs;
+        chunkData = vs.chunkValues;
     }
 
     private final boolean[] checked;
@@ -71,8 +72,10 @@ public class PlaceUpdate {
         chunkRef.add(rcr[relChunk]);
         checked[(relChunk<<16)+(lc.parsedCoord & 0xffff)]=true;
         //move outside, don't need to now
-        chunkVals[relChunk] = vs.chunkValues.get(cc).blockVals;
-        chunkVals[relChunk].get(lc)[2]=1;
+        byte[] data = chunkData.get(cc).blockVals.get(lc);
+        data[2]=1;
+//        chunkVals[relChunk] = cv.blockVals;
+//        chunkVals[relChunk].get(lc)[2]=1;
         chunkMark.add(rcr[relChunk]);
 
         while(!coordQ.isEmpty()) {
@@ -139,7 +142,7 @@ public class PlaceUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(new ChunkCoord(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=chunkData.get(new ChunkCoord(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 
@@ -190,8 +193,8 @@ public class PlaceUpdate {
         int parsedCoord;
         byte[] t;
         LocalCoord l;
-        vs.chunkValues.put(cc, new ChunkValues());
-        HashMap<LocalCoord,byte[]> chunkVals = vs.chunkValues.get(cc).blockVals;
+        chunkData.put(cc, new ChunkValues());
+        HashMap<LocalCoord,byte[]> chunkVals = chunkData.get(cc).blockVals;
 
         for (loop=-1; ++loop<256;) {
             l = HyperKeys.localCoord[loop];

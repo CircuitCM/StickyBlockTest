@@ -70,7 +70,7 @@ public enum Coords {
     }
 
     public final static ChunkCoord CHUNK(Block b){
-        return new ChunkCoord(b.getX()>> 4,b.getZ()>> 4);
+        return new ChunkCoord((b.getX()>> 4),(b.getZ()>> 4));
     }
 
     public final static LocalCoord COORD(Location l){
