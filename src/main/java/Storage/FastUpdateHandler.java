@@ -20,20 +20,20 @@ public class FastUpdateHandler {
 
         int xz = x*z;
         chunkValueHolder = new HashMap[xz];
-        checkedCoords = new boolean[(xz)<<16];
-        chunkValueMarker = new ArrayDeque<>(81);
+        checkedCoords = new boolean[xz<<16];
+        chunkValueMarker = new ArrayDeque<>(xz);
         relativeChunkReference = new byte[xz][];
         blockFallQuery = new HashSet[xz];
         blockUpdate = new ArrayDeque[xz];
 
-        for (byte xl=0; ++xl<x;){
-            for (byte zl=0; ++zl<z;){
+        for (byte xl=-1; ++xl<x;){
+            for (byte zl=-1; ++zl<z;){
                 byte[] xzl = {xl,zl};
-                relativeChunkReference[xl*x+zl]= xzl;
+                relativeChunkReference[x*xl+zl]= xzl;
             }
         }
 
-        for (int xzl=0; ++xzl<xz;){
+        for (int xzl=-1; ++xzl<xz;){
             blockFallQuery[xzl]= new HashSet<>(96);
             blockUpdate[xzl]= new ArrayDeque<>(64);
 //            chunkValueHolder[xzl]= null;

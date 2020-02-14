@@ -1,31 +1,26 @@
 package Factories;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import Factories.Executors.SPSCRunnerWrapper;
+
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public final class HyperScheduler {
 
-    public static JCthreadPoolWrapper blockEventExecutor;
-    public static JCthreadPoolWrapper chunkEventExecutor;
-    public static JCthreadPoolWrapper fallBlockBuilder;
-    public static JCthreadPoolWrapper chunkLoadExecutor;
-    public static JCthreadPoolWrapper sync_AsyncExecutor;
-    public static ThreadPoolExecutor performance_Test;
+    public final static SPSCRunnerWrapper worldDataUpdater;
+    public final static ThreadPoolExecutor worldLoader;
+    public final static SPSCRunnerWrapper generalExecutor;
+    public final static ScheduledThreadPoolExecutor scheduledExecutor;
 
     static{
-        blockEventExecutor =
-            new JCthreadPoolWrapper(true,1,0,120,10,"BlockEventExecutor");
-        chunkEventExecutor =
-            new JCthreadPoolWrapper(true,1,0,1000,10,"ChunkEventExecutor");
-        fallBlockBuilder =
-            new JCthreadPoolWrapper(true,1,0,120,10,"FallingBlockBuilder");
-        chunkLoadExecutor =
-            new JCthreadPoolWrapper(true,8,0,10,1,"ChunkLoadExecutor");
-        sync_AsyncExecutor =
-            new JCthreadPoolWrapper(true,1,0,10,1,"Sync_AsyncExecutor");
-        performance_Test =
-            new ThreadPoolExecutor(1,1,10, TimeUnit.MINUTES, new LinkedBlockingQueue<Runnable>(),
-                new HyperThreader(1, "Test"));
+        worldDataUpdater =
+            new SPSCRunnerWrapper(120,10,"World Data Updater");
+        worldLoader =
+            new ThreadPoolExecutor(0, 1, 20, TimeUnit.SECONDS,new SynchronousQueue<>(), new HyperThreader(1,"World Loader"));
+        generalExecutor =
+            new SPSCRunnerWrapper(10,1,"General Executor");
+        scheduledExecutor = new ScheduledThreadPoolExecutor(1,new HyperThreader(1,"Scheduled Thread"));
     }
 }

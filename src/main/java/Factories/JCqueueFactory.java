@@ -49,7 +49,6 @@ public class JCqueueFactory {
             // MPSC
             else if (qs.isMpsc())
             {
-                return new MpscLinkedQueue8<>();
             }
 
             else if (qs.isSpmc())

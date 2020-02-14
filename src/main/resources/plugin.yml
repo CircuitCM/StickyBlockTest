@@ -1,4 +1,5 @@
 name: BlockPhysicsTest
 author: Circuitsword
 version: 1.0
-main: BlockPhysics
+main: HyperForts
+load: STARTUP

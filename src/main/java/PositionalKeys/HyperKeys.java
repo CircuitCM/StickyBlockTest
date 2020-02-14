@@ -1,28 +1,36 @@
 package PositionalKeys;
 
+import org.bukkit.Bukkit;
+
 public class HyperKeys {
 
     public final static LocalCoord[] localCoord = new LocalCoord[65536];
-    public final static StripCoord[] stripLocal = new StripCoord[256];
+    public final static ChunkCoord[] CHUNK_COORDS;
+    public static int COORDMAX;
+    public static int CHUNK_SHIFT;
+
 
     static{
-
         int loop;
         for(loop=-1;++loop<65536;){
             localCoord[loop] = new LocalCoord((short)loop);
         }
-        /*int x2=0b0;
-        int arrayPos2 = 0;
-        while (x2<= 0b1111){
-            int xl=x2;
-            xl<<=4;
-            int z2=0b0;
-            while (z2<=0b1111) {
-                stripLocal[arrayPos2] = new StripCoord((byte)(xl|z2));
-                ++z2;
-                ++arrayPos2;
+
+        CHUNK_SHIFT=9;
+        int xzsize =1<<9;
+        CHUNK_COORDS = new ChunkCoord[xzsize*xzsize];
+        int coordmax=xzsize>>>1;
+        COORDMAX=coordmax;
+        int coordmin=coordmax-xzsize-1;
+        int loop2;
+        int arraypos;
+        for(loop=coordmin;++loop<coordmax;){
+            arraypos=(loop+coordmax)<<9;
+            for(loop2=coordmin;++loop2<coordmax;){
+                CHUNK_COORDS[arraypos|(loop2+coordmax)]=new ChunkCoord(loop,loop2);
             }
-            ++x2;
-        }*/
+        }
+        Bukkit.getConsoleSender().sendMessage ("\n HyperKeys set");
+        //to get from chunk coord, [((cx+256)<<9)|(cz+256)]
     }
 }
