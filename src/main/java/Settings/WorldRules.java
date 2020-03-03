@@ -9,8 +9,8 @@ import org.bukkit.block.Biome;
 
 import java.util.EnumMap;
 import java.util.TimeZone;
+import java.util.TimerTask;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static org.bukkit.Material.*;
 
@@ -25,8 +25,14 @@ public final class WorldRules {
     public static int G_TIME;
     static{
         G_TIME=(int) (System.currentTimeMillis()/10000);
-        HyperScheduler.scheduledExecutor.scheduleAtFixedRate(()->WorldRules.G_TIME=(int) (System.currentTimeMillis()/10000),10,10, TimeUnit.SECONDS);
-//        HyperScheduler.scheduledExecutor.scheduleAtFixedRate(()->Bukkit.broadcastMessage(" "+WorldRules.G_TIME),11,10,TimeUnit.SECONDS);
+        HyperScheduler.tickingExecutor.setTimerTask(
+            new TimerTask() {
+                @Override
+                public void run() {
+                    WorldRules.G_TIME = (int) (System.currentTimeMillis() / 10000);
+                }
+            }
+        ,99999,99999);
     }
 
     /* World Gen*/

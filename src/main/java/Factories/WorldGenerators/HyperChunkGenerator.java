@@ -48,8 +48,8 @@ public class HyperChunkGenerator extends ChunkGenerator {
                 if(Ys>16820000)continue;
                 r =1+(Ys/6291456D);
 
-                generator.setScale(0.004D+(r*0.003D));
-                currentHeight = (int)(generator.noise(Xset, Zset, 1.119D, 1D)*r*1.45D+r*r*r*r+25D);
+                generator.setScale(0.002D+(r*0.003D));
+                currentHeight = (int)(generator.noise(Xset, Zset, 1.119D, 1D)*r*1.4D+r*r*r*r+25D);
                 Ymin = currentHeight - 10;
 
                 Ys = rand.nextInt(10000);

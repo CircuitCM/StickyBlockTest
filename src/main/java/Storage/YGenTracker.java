@@ -12,6 +12,6 @@ public class YGenTracker extends YTracker{
      */
     public byte[] x48_count = {0,0,0,0,0};
     //at full init_holder[pos] take all init_holder[pos], run regression set y_est[pos}, init_holder[pos]=null, ++x4_count
-    public byte[][][] init_holder = new byte[16][][];
+    public byte[][][] init_holder = new byte[16][4][];
 
 }

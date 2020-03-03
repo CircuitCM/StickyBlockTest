@@ -1,6 +1,7 @@
 package Factories;
 
 import Factories.Executors.SPSCRunnerWrapper;
+import Factories.Executors.TickingExecutor;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
@@ -13,8 +14,11 @@ public final class HyperScheduler {
     public final static ThreadPoolExecutor worldLoader;
     public final static SPSCRunnerWrapper generalExecutor;
     public final static ScheduledThreadPoolExecutor scheduledExecutor;
+    public final static TickingExecutor tickingExecutor;
+
 
     static{
+        tickingExecutor = new TickingExecutor("AsyncWorldThread",100);
         worldDataUpdater =
             new SPSCRunnerWrapper(120,10,"World Data Updater");
         worldLoader =

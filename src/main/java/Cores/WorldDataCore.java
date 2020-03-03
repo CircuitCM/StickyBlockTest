@@ -28,7 +28,6 @@ import org.jctools.queues.SpscLinkedQueue;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 import static org.bukkit.Bukkit.broadcastMessage;
 import static org.bukkit.Bukkit.getScheduler;
@@ -65,7 +64,7 @@ public class WorldDataCore {
         kryoIO.setTerraKryoIO(cache_Count,terra_IOCache,yRegionTracker);
         kryoIO.setWorldKryoIO(chunkValues);
         this.kryoIO=kryoIO;
-        HyperScheduler.scheduledExecutor.scheduleAtFixedRate(this::startTerraGuardian,45,20, TimeUnit.SECONDS);
+        HyperScheduler.tickingExecutor.submit(this::startTerraGuardian,40000,14999);
     }
 
     private final void resetDataStructures(Operator resetType) {
@@ -432,35 +431,40 @@ public class WorldDataCore {
 
     private final ObjectArrayFIFOQueue<ChunkCoord> terra_fileLoad = new ObjectArrayFIFOQueue<>(64);
     private final void queryTerraIO(){
-
-        LCtoByteQ terra_Chunk; ChunkCoord cc; ChunkValues cv;
-        for(Map.Entry<ChunkCoord, ChunkValues> entrySet: chunkValues.entrySet()){
-//            Bukkit.broadcastMessage("Checking IO cache");
-            cc=entrySet.getKey();
-            cv=entrySet.getValue();
-            if(cv.isLoaded) {
-                Bukkit.broadcastMessage("chunk was loaded");
-                terra_Chunk = terra_IOCache.getOrDefault(cc, null);
-                if (terra_Chunk != null) {
-                    int size =terra_Chunk.q1.size();
-                    while (--size >= 0) {
-                        if (terra_Chunk.q2.popByte() > 0) {
-                            terraForm_IOEntry.enqueue(Coords.BLOCK_AT(terra_Chunk.q1.pop(), cc));
-                            Bukkit.broadcastMessage("Adding to terraForm IO " +cache_Count);
-                        } else {
-                            terraDegen_IOEntry.enqueue(Coords.BLOCK_AT(terra_Chunk.q1.pop(), cc));
+        yRegionTracker.short2ObjectEntrySet().fastForEach((entrySet)->{
+            short x8offset=entrySet.getShortKey();
+            YTracker ytrack = entrySet.getValue();
+            int x,xoff,z,zoff,xz4,size;
+            for(x=-1;++x<4;){
+                xoff=(((x8offset>>8<<2)|x)<<1);
+                for(z=-1;++z<4;){
+                    zoff=((((x8offset&8)<<2)|z)<<1);
+                    if(ytrack.load2x_chunk[(x<<2)|z]>3) {
+                        for (xz4 = -1; ++xz4 < 4; ) {
+                            Bukkit.broadcastMessage("chunk was loaded");
+                            ChunkCoord cc = Coords.CHUNK(((xoff | (xz4 >>> 1)) << 16) | (zoff | (xz4 & 1)));
+                            LCtoByteQ terra_Chunk = terra_IOCache.getOrDefault(cc, null);
+                            if (terra_Chunk != null) {
+                                size = terra_Chunk.q1.size();
+                                while (--size >= 0) {
+                                    if (terra_Chunk.q2.popByte() > 0) {
+                                        terraForm_IOEntry.enqueue(Coords.BLOCK_AT(terra_Chunk.q1.pop(), cc));
+                                        Bukkit.broadcastMessage("Adding to terraForm IO " + cache_Count);
+                                    } else {
+                                        terraDegen_IOEntry.enqueue(Coords.BLOCK_AT(terra_Chunk.q1.pop(), cc));
+                                    }
+                                    --cache_Count;
+                                }
+                                Bukkit.broadcastMessage("Checking cached files");
+                            }
+                            if (kryoIO.chunkFileInStorage(Operator.TERRA, cc.parsedCoord >> 16, cc.parsedCoord << 16 >> 16)) {
+                                terra_fileLoad.enqueue(cc);
+                            }
                         }
-                        --cache_Count;
                     }
-                    Bukkit.broadcastMessage("Checking cached files");
                 }
-                if (kryoIO.chunkFileInStorage(Operator.TERRA, cc.parsedCoord >> 16, cc.parsedCoord << 16 >> 16)) {
-                    terra_fileLoad.enqueue(cc);
-                }
-            }else{
-                Bukkit.broadcastMessage("Chunk marked as unloaded at: "+Coords.CHUNK_STRING(cc));
             }
-        }
+        });
         if(!terra_fileLoad.isEmpty()){
             kryoIO.terraFileLoad(terra_fileLoad,terraForm_IOEntry,terraDegen_IOEntry);
         }else{
@@ -478,13 +482,13 @@ public class WorldDataCore {
     //max val per cache 65536
     //for both time tracks, if on scheduler update the time, not on chunk load, could represent non used chunk to cache
     public int cache_Count = 0;
-    public final Object2ObjectLinkedOpenHashMap<ChunkCoord, LCtoByteQ> terra_IOCache = new Object2ObjectLinkedOpenHashMap<>(256);
+    public final Object2ObjectLinkedOpenHashMap<ChunkCoord, LCtoByteQ> terra_IOCache = new Object2ObjectLinkedOpenHashMap<>(16);
 
     //scheduled editing collections, should have limited size by their offload factors
     public volatile boolean degenTaskActive=false;
     public volatile boolean formTaskActive=false;
-    public final Short2ObjectOpenHashMap<YGenTracker> yRegionTracker = new Short2ObjectOpenHashMap<YGenTracker>(4,0.8F);
-    private final DataUtil.YBlockTerraSort yTSort = new DataUtil.YBlockTerraSort(chunkValues);
+    public final Short2ObjectOpenHashMap<YTracker> yRegionTracker = new Short2ObjectOpenHashMap<>(4,0.8F);
+    private final DataUtil.YBlockTerraSort yTSort = new DataUtil.YBlockTerraSort(yRegionTracker);
     private final LinkedList<Block> terraDegen = new LinkedList<>();
     private final ObjectArrayList<Block> terraForm = new ObjectArrayList<>(256);
 
