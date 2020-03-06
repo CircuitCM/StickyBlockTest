@@ -1,6 +1,7 @@
 package Util;
 
 import Factories.HyperScheduler;
+import PositionalKeys.ChunkCoord;
 import PositionalKeys.HyperKeys;
 import PositionalKeys.LocalCoord;
 import Settings.WorldRules;
@@ -17,6 +18,7 @@ import org.apache.commons.math3.linear.QRDecomposition;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.jctools.maps.NonBlockingHashMap;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -128,7 +130,7 @@ public class DataUtil {
             Xshift=X<<4;
             for (Z = -1; ++Z < 16;){
                 XZshift=Xshift|Z;
-                currentHeight = yNoise[XZshift]+15;
+                currentHeight = yNoise[XZshift];
                 Ymin = currentHeight - 10;
                 blockData.put(HyperKeys.localCoord[(currentHeight<<8)|XZshift],new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
                 blockData.put(HyperKeys.localCoord[(--currentHeight<<8)|XZshift],new byte[]{0,0,1,1,2,0,0,0,0,0,0,0,0});
@@ -145,6 +147,39 @@ public class DataUtil {
     }
 
     public static class YBlockTerraSort implements Comparator<Block>{
+
+        private final NonBlockingHashMap<ChunkCoord,ChunkValues> chunkValues;
+        private int txl = 1000000;
+        private int tzl = 1000000;
+        private byte[] ySlope = null;
+        private ChunkCoord tchunkCoord = null;
+
+        public YBlockTerraSort(NonBlockingHashMap<ChunkCoord, ChunkValues> chunkValues){
+          this.chunkValues=chunkValues;
+        }
+
+        @Override
+        public int compare(Block b1, Block b2){
+            int x=b1.getX(), z=b1.getZ(),x4=x>>4,z4=z>>4;
+            if (txl != x4 || tzl != z4) {
+                txl = x4;
+                tzl = z4;
+                tchunkCoord = Coords.CHUNK(x4,z4);
+                ySlope= chunkValues.get(tchunkCoord).ySlope;
+            }
+            int y = b1.getY()-ySlope[((x&0x0f)<<4)|(z&0x0f)];
+            x=b2.getX(); z=b2.getZ(); x4=x>>4;z4=z>>4;
+            if (txl != x4 || tzl != z4) {
+                txl = x4;
+                tzl = z4;
+                tchunkCoord = Coords.CHUNK(x4,z4);
+                ySlope= chunkValues.get(tchunkCoord).ySlope;
+            }
+            return Integer.compare(y,b2.getY()-ySlope[((x&0x0f)<<4)|(z&0x0f)]);
+        }
+    }
+
+    public static class YBlockRegressiveSort implements Comparator<Block>{
         public final Short2ObjectOpenHashMap<YTracker> yRegionTracker;
         private int yield_count=0;
         private short xz8;
@@ -154,7 +189,7 @@ public class DataUtil {
         private Short2DoubleLinkedOpenHashMap yzCache = new Short2DoubleLinkedOpenHashMap(16);
         private float[] yFslope = null;
         private float[][] ySlope = null;
-        public YBlockTerraSort(Short2ObjectOpenHashMap<YTracker> yRegionTracker){
+        public YBlockRegressiveSort(Short2ObjectOpenHashMap<YTracker> yRegionTracker){
             this.yRegionTracker=yRegionTracker;
         }
         @Override

@@ -2,9 +2,10 @@ package Util;
 
 import PositionalKeys.ChunkCoord;
 import PositionalKeys.LocalCoord;
+import Storage.ChunkValues;
 import Storage.FastUpdateHandler;
-import Storage.ValueStorage;
 import org.bukkit.block.Block;
+import org.jctools.maps.NonBlockingHashMap;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -14,10 +15,10 @@ import static PositionalKeys.HyperKeys.localCoord;
 
 public class BreakUpdate {
 
-    private ValueStorage vs;
+    private final NonBlockingHashMap<ChunkCoord, ChunkValues> chunkValues;
 
-    public BreakUpdate(ValueStorage valueStore, FastUpdateHandler updateHandler){
-        vs= valueStore;
+    public BreakUpdate(NonBlockingHashMap<ChunkCoord, ChunkValues> cv, FastUpdateHandler updateHandler){
+        chunkValues=cv;
         checked = updateHandler.checkedCoords;
         chunkVals = updateHandler.chunkValueHolder;
         chunkMark = updateHandler.chunkValueMarker;
@@ -137,7 +138,7 @@ public class BreakUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 
@@ -219,7 +220,7 @@ public class BreakUpdate {
 
                 relChunk = (9 * (x - rx +4)) + (z - rz +4);
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(x,z)).blockVals;
+                    chunkVals[relChunk]=chunkValues.get(Coords.CHUNK(x,z)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
                 coordQ.add(l);
@@ -292,7 +293,7 @@ public class BreakUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 

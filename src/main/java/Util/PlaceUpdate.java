@@ -3,11 +3,12 @@ package Util;
 import PositionalKeys.ChunkCoord;
 import PositionalKeys.LocalCoord;
 import Settings.WorldRules;
+import Storage.ChunkValues;
 import Storage.FastUpdateHandler;
-import Storage.ValueStorage;
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
+import org.jctools.maps.NonBlockingHashMap;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -18,10 +19,10 @@ import static PositionalKeys.HyperKeys.localCoord;
 
 public class PlaceUpdate {
 
-    private ValueStorage vs;
+    private final NonBlockingHashMap<ChunkCoord, ChunkValues> chunkValues;
     private final int tensilerange = WorldRules.TENSILE_RANGE;
 
-    public PlaceUpdate(ValueStorage vs, FastUpdateHandler updateHandler){
+    public PlaceUpdate(NonBlockingHashMap<ChunkCoord,ChunkValues> cv, FastUpdateHandler updateHandler){
 
         checked = updateHandler.checkedCoords;
         chunkVals = updateHandler.chunkValueHolder;
@@ -29,7 +30,7 @@ public class PlaceUpdate {
         fallQuery = updateHandler.blockFallQuery;
         rcr = updateHandler.relativeChunkReference;
         updtPtrs = updateHandler.blockUpdate;
-        this.vs= vs;
+        chunkValues=cv;
     }
 
     private final boolean[] checked;
@@ -132,7 +133,7 @@ public class PlaceUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 
@@ -243,7 +244,7 @@ public class PlaceUpdate {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
 
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
 
@@ -286,7 +287,7 @@ public class PlaceUpdate {
         byte[] t;
         LocalCoord l;
         ChunkCoord cc = Coords.CHUNK(c.getX(),c.getZ());
-        HashMap<LocalCoord,byte[]> chunkVals = vs.chunkValues.get(cc).blockVals;
+        HashMap<LocalCoord,byte[]> chunkVals = chunkValues.get(cc).blockVals;
 
         for (loop=-1; ++loop<256;) {
             l = localCoord[loop];
@@ -445,7 +446,7 @@ public class PlaceUpdate {
             for (loop=-1; ++loop<6;) {
                 relChunk =9*lrs[loop<<1]+lrs[(loop<<1)+1];
                 if(chunkVals[relChunk]==null){
-                    chunkVals[relChunk]=vs.chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
+                    chunkVals[relChunk]=chunkValues.get(Coords.CHUNK(((cc.parsedCoord>>16)+lrs[loop<<1])-4,((cc.parsedCoord<<16>>16)+lrs[(loop<<1)+1])-4)).blockVals;
                     chunkMark.add(rcr[relChunk]);
                 }
                 t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});

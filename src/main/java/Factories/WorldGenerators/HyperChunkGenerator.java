@@ -50,6 +50,7 @@ public class HyperChunkGenerator extends ChunkGenerator {
 
                 generator.setScale(0.002D+(r*0.003D));
                 currentHeight = (int)(generator.noise(Xset, Zset, 1.119D, 1D)*r*1.4D+r*r*r*r+25D);
+                yNoise[Xshift|Z]=(byte)currentHeight;
                 Ymin = currentHeight - 10;
 
                 Ys = rand.nextInt(10000);
@@ -73,7 +74,6 @@ public class HyperChunkGenerator extends ChunkGenerator {
                 while(--currentHeight>Ymin){
                     chunk.setBlock(X, currentHeight, Z, Material.BEDROCK);
                 }
-                yNoise[Xshift|Z]=(byte)Ymin;
             }
         }
         chunkEvents.submitPostGenEvent(new PostChunkGenEvent((chunkX >> 4 << 16) | (chunkZ >> 4), yNoise));

@@ -133,63 +133,28 @@ public class KryoIO {
         Kryo kryo = kryoPool.obtain();
         Input input = inputPool.obtain();
         while((chunkEvent=chunkLoadQuery.relaxedPoll())!=null){
-            ChunkCoord cc; ChunkValues cv; int xz,pos;short xz8; YTracker yg;
+            ChunkCoord cc; ChunkValues cv; int xz;
             if(chunkEvent.getClass()== ChunkLoadEvent.class) {
                 if (!((ChunkLoadEvent) chunkEvent).isNewChunk()) {
                     cc = Coords.CHUNK(chunkEvent.getChunk());
-                    if (!chunkSaveQuery.remove(cc)&&!chunkData.containsKey(cc)&&(cv = loadChunkValuesFile(cc, kryo, input))!=null) {
-                        xz=cc.parsedCoord;
-                        xz8=(short)((xz>>>19<<8)|((xz>>>3)&0x0ff));
-                        if(!yRegionTracker.containsKey(xz8)){
-                            if((yg= loadYtracker(xz8,input))!=null){
-                                yRegionTracker.put(xz8,yg);
-                            }else{
-                                Bukkit.broadcastMessage("creating region regression load event: "+(xz8>>8)+","+(xz8&0xff));
-                                yg=new YGenTracker();
-                                yRegionTracker.put(xz8,yg);
-                            }
-                        }else{
-                            yg=yRegionTracker.get(xz8);
-                        }
-                        pos=(((xz >>> 17) & 0b011) << 2) | ((xz >>> 1) & 0b011);
-                        /*if(yg.load2x_chunk[pos]<4)*/Bukkit.broadcastMessage("Loading chunk "+Coords.CHUNK_STRING(cc)+ " . "+ ++yg.load2x_chunk[pos]+ " , "+ pos);
-                        if (yg.partition_lvl != 1) {
-                            DataUtil.loadChunkRegression((((xz >>> 16) & 0b0111) << 3) | (xz & 0b0111), DataUtil.getYnoise(cv), (YGenTracker) yg);
-                        }
-                        chunkData.put(cc, cv);
+                    if (chunkSaveQuery.remove(cc)) {
+                        chunkData.get(cc).isLoaded = true;
+                    }else if(!chunkData.containsKey(cc) && (cv = loadChunkValuesFile(cc, kryo, input)) != null) {
+                            chunkData.put(cc, cv);
                     }
                 }
             }else if(chunkEvent.getClass()== ChunkUnloadEvent.class){
-                xz=(cc =Coords.CHUNK(chunkEvent.getChunk())).parsedCoord;
-                xz8=(short)((xz>>>19<<8)|((xz>>>3)&0x0ff));
+                cc =Coords.CHUNK(chunkEvent.getChunk());
                     if(chunkData.containsKey(cc)&&chunkSaveQuery.addAndMoveToFirst(cc)){
-                        if((yg=yRegionTracker.get(xz8))!=null) {
-                            pos = (((xz >>> 17) & 0b011) << 2) | ((xz >>> 1) & 0b011);
-                            /*if (yg.load2x_chunk[pos] > 0)*/ Bukkit.broadcastMessage("Unloading chunk "+Coords.CHUNK_STRING(cc)+ " . "+ --yg.load2x_chunk[pos]+ " , "+pos);
-                        }
+                        chunkData.get(cc).isLoaded=false;
                     }
             }else if(chunkEvent.getClass()== PostChunkGenEvent.class){
                 //getConsoleSender().sendMessage("Generating chunk");
                 PostChunkGenEvent postGen = (PostChunkGenEvent) chunkEvent;
-                xz=postGen.XZ;
-                cc =Coords.CHUNK(xz);
+                cc =Coords.CHUNK(postGen.XZ);
                 if(!chunkData.containsKey(cc)){
-                    cv=new ChunkValues();
+                    cv=new ChunkValues(postGen.yNoise);
                     DataUtil.populateBlockData(cv,postGen.yNoise);
-                    xz8=(short)((xz>>>19<<8)|((xz>>>3)&0x0ff));
-                    if(!yRegionTracker.containsKey(xz8)){
-                        Bukkit.broadcastMessage("creating region regression gen event: "+(xz8>>8)+","+(xz8&0xff));
-                        yg=new YGenTracker();
-                        yRegionTracker.put(xz8,yg);
-                    }else{
-                        yg= yRegionTracker.get(xz8);
-                    }
-                    if(yg.partition_lvl!=1){
-                        pos = (((xz>>>17)&0b011)<<2)|((xz>>>1)&0b011);
-                        Bukkit.broadcastMessage("Post Gen chunk "+Coords.CHUNK_STRING(cc)+ " . "+ ++yg.load2x_chunk[pos]+" , "+pos);
-                        /*++yg.load2x_chunk[(((xz>>>17)&0b011)<<2)|((xz>>>1)&0b011)];*/
-                        DataUtil.loadChunkRegression((((xz>>>16)&0b0111)<<3)|(xz&0b0111),postGen.yNoise,(YGenTracker)yg);
-                    }
                     chunkData.put(cc,cv);
                 }
             }
@@ -246,31 +211,33 @@ public class KryoIO {
                offload_size=1;
            }
            ChunkCoord cc; ChunkValues cvs; File cf; short xz8; int xz; YTracker ytrack; Path p;
-           while(--offload_size>-1){
-               cc= chunkSaveQuery.removeLast();
+           while(--offload_size>-1) {
+               cc = chunkSaveQuery.removeLast();
                cvs = chunkData.get(cc);
-
-               cf = new File(cdString + "/" + Coords.CHUNK_STRING(cc) + ".dat");
-               if (!cf.exists()) {
+               if (cvs.overrideUnload) {
+                   chunkSaveQuery.addAndMoveToFirst(cc);
+               } else {
+                   cf = new File(cdString + "/" + Coords.CHUNK_STRING(cc) + ".dat");
+                   if (!cf.exists()) {
+                       try {
+                           cf.createNewFile();
+                       } catch (IOException e) {
+                           e.printStackTrace();
+                       }
+                   }
                    try {
-                       cf.createNewFile();
+                       output.setOutputStream(new FileOutputStream(cf, false));
                    } catch (IOException e) {
                        e.printStackTrace();
                    }
-               }
-               try {
-                   output.setOutputStream(new FileOutputStream(cf,false));
-               } catch (IOException e) {
-                   e.printStackTrace();
-               }
-               kryo.writeObject(output,cvs);
-               output.flush();
-               try {
-                   output.getOutputStream().close();
-               } catch (IOException e) {
-                   e.printStackTrace();
-               }
-               xz= cc.parsedCoord;
+                   kryo.writeObject(output, cvs);
+                   output.flush();
+                   try {
+                       output.getOutputStream().close();
+                   } catch (IOException e) {
+                       e.printStackTrace();
+                   }
+               /*xz= cc.parsedCoord;
                xz8=(short)((xz>>>19<<8)|((xz>>>3)&0b011111111));
                if((ytrack=yRegionTracker.get(xz8))!=null&&DataUtil.regionLoad(ytrack.load2x_chunk)<1){
                    if(ytrack.partition_lvl==1&&ytrack.getClass()==YGenTracker.class) {
@@ -295,8 +262,9 @@ public class KryoIO {
                            }
                    }
                    yRegionTracker.remove(xz8);
+               }*/
+                   chunkData.remove(cc);
                }
-               chunkData.remove(cc);
            }
            output.close();
            kryoPool.free(kryo);
