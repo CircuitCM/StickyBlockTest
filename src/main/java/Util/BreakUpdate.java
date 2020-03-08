@@ -144,7 +144,7 @@ public class BreakUpdate {
 
                 t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
 
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]<1);
                 tenseVals[loop]=t[0];
             }
 
@@ -299,7 +299,7 @@ public class BreakUpdate {
 
                 t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
 
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]<1);
                 tenseVals[loop]=t[0];
             }
 

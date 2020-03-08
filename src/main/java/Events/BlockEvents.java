@@ -37,7 +37,7 @@ public class BlockEvents implements Listener {
 
     public BlockEvents(WorldDataCore wd, JavaPlugin p){
         this.wd=wd;
-        this.chunkValues = wd.vs.chunkValues;
+        this.chunkValues = wd.chunkValues;
         blockPhysics= p;
     }
 

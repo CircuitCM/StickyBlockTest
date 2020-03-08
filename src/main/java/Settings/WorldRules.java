@@ -122,6 +122,6 @@ public final class WorldRules {
         BLOCK_DEFAULTS.put(ENDER_STONE,new byte[]{7,80,1});
         BLOCK_DEFAULTS.put(DIRT,new byte[]{7,1,1});
         BLOCK_DEFAULTS.put(GRASS,new byte[]{7,1,1});
-        BLOCK_DEFAULTS.put(BEDROCK,new byte[]{7,127,0});
+        BLOCK_DEFAULTS.put(BEDROCK,new byte[]{7,127,-1});
     }
 }

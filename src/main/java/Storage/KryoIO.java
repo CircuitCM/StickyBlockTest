@@ -7,20 +7,21 @@ import PositionalKeys.LocalCoord;
 import Storage.KryoExtensions.SerializationFactory;
 import Util.Coords;
 import Util.DataUtil;
-import Util.LCtoByteQ;
 import Util.Operator;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.util.Pool;
 import it.unimi.dsi.fastutil.Hash;
+import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongRBTreeSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.shorts.Short2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.block.Block;
 import org.bukkit.event.world.ChunkEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
@@ -76,7 +77,7 @@ public class KryoIO {
         this.chunkData=chunkData;
     }
 
-    public void setTerraKryoIO(int cache_Count, Object2ObjectLinkedOpenHashMap<ChunkCoord, LCtoByteQ> terra_IOCache, Short2ObjectOpenHashMap<YTracker> yRegionTracker){
+    public void setTerraKryoIO(int cache_Count, Object2ObjectLinkedOpenHashMap<ChunkCoord, Short2BooleanOpenHashMap> terra_IOCache){
         this.cache_Count= cache_Count;
         this.terra_IOCache = terra_IOCache;
         this.yRegionTracker = yRegionTracker;
@@ -165,7 +166,7 @@ public class KryoIO {
     }
 
     private ChunkValues loadChunkValuesFile(ChunkCoord cc, Kryo kryo, Input input) {
-        Bukkit.broadcastMessage("chunkLoad IO triggered " + Coords.CHUNK_STRING(cc));
+//        Bukkit.broadcastMessage("chunkLoad IO triggered " + Coords.CHUNK_STRING(cc));
         //if (chunkFileInStorage(Operator.WORLD_DATA, cc.parsedCoord>>16, cc.parsedCoord<<16>>16)) {
         Path p = chunkPath.resolve(Coords.CHUNK_STRING(cc) + ".dat");
         if (Files.exists(p)){
@@ -206,7 +207,8 @@ public class KryoIO {
         Output output = outputPool.obtain();
         int queue_size=chunkSaveQuery.size();
         if(queue_size>0){
-           int offload_size = (queue_size*(queue_size/(queue_size+200)));
+           int offload_size = (queue_size*queue_size)/(queue_size+350);
+           Bukkit.broadcastMessage("saving: "+ offload_size+" of "+queue_size);
            if(offload_size<1){
                offload_size=1;
            }
@@ -272,7 +274,7 @@ public class KryoIO {
         }
     }
 
-    public void terraFileLoad(ObjectArrayFIFOQueue<ChunkCoord> terra_fileLoad, ObjectArrayFIFOQueue<Block> terraForm_IOEntry, ObjectArrayFIFOQueue<Block> terraDegen_IOEntry){
+    public void terraFileLoad(ObjectArrayFIFOQueue<ChunkCoord> terra_fileLoad, LongRBTreeSet terraForm_Cache, LongLinkedOpenHashSet terraDegen_Cache){
         Kryo kryo = kryoPool.obtain();
         Input input = inputPool.obtain();
         ChunkCoord cc; File f; LocalCoord lc;
@@ -285,13 +287,16 @@ public class KryoIO {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            while((lc=kryo.readObject(input,LocalCoord.class))!=null) {
+            short localCoord;
+            boolean isForm;
+            /*while(input.) {
+                input.
                 if(input.readBoolean()){
                     terraForm_IOEntry.enqueue(Coords.BLOCK_AT(lc,cc));
                 }else{
                     terraDegen_IOEntry.enqueue(Coords.BLOCK_AT(lc,cc));
                 }
-            }
+            }*/
         }
         input.close();
         kryoPool.free(kryo);
@@ -299,7 +304,7 @@ public class KryoIO {
     }
 
     public int cache_Count;
-    public Object2ObjectLinkedOpenHashMap<ChunkCoord, LCtoByteQ> terra_IOCache;
+    public Object2ObjectLinkedOpenHashMap<ChunkCoord, Short2BooleanOpenHashMap> terra_IOCache;
 
     public final void saveTerraCache(int cache_Expect) {
 
@@ -307,10 +312,10 @@ public class KryoIO {
         Output output = outputPool.obtain();
         File blockFile;
         ChunkCoord cc;
-        LCtoByteQ chunkCache;
+        /*LCtoByteQ chunkCache;
         while (cache_Expect < cache_Count) {
             cc=terra_IOCache.lastKey();
-            chunkCache=terra_IOCache.removeLast();
+            *//*chunkCache=terra_IOCache.removeLast();*//*
             blockFile = new File(terraString + "/" + Coords.CHUNK_STRING(cc) + ".dat");
             if (!blockFile.exists()) {
                 try {
@@ -325,8 +330,8 @@ public class KryoIO {
                 e.printStackTrace();
             }
 
-            if(chunkCache.q2.isEmpty())continue;
-            int size = chunkCache.q2.size();
+            *//*if(chunkCache.q2.isEmpty())continue;*//*
+            *//*int size = chunkCache.q2.size();*//*
             while(--size>=0) {
                 saveBlock(chunkCache.q1.pop(), chunkCache.q2.popByte()>0, output, kryo);
             }
@@ -336,7 +341,7 @@ public class KryoIO {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
+        }*/
         output.close();
         kryoPool.free(kryo);
         outputPool.free(output);

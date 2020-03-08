@@ -22,7 +22,7 @@ public class ChunkEvents implements Listener {
     public ChunkEvents(WorldDataCore wd,SpscArrayQueue<ChunkEvent> chunkLoadQuery) {
         this.chunkLoadQuery=chunkLoadQuery;
         kd = wd.kryoIO;
-        chunkData = wd.vs.chunkValues;
+        chunkData = wd.chunkValues;
     }
 
     @EventHandler
@@ -34,7 +34,7 @@ public class ChunkEvents implements Listener {
         chunkLoadQuery.relaxedOffer(e);
     }
 
-    public void submitPostGenEvent(PostChunkGenEvent e){
+    public final void submitPostGenEvent(PostChunkGenEvent e){
         chunkLoadQuery.relaxedOffer(e);
     }
 

@@ -139,7 +139,7 @@ public class PlaceUpdate {
 
                 t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
 
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]<1);
                 tenseVals[loop]=t[0];
             }
 
@@ -250,7 +250,7 @@ public class PlaceUpdate {
 
                 t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
 
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]<1);
                 tenseVals[loop]=t[0];
             }
 
@@ -347,7 +347,7 @@ public class PlaceUpdate {
                             t[2] = 0;
                             break;
                     }
-                    cms[loop] = !(cchecked[cls[loop].parsedCoord & 0xffff] || t[3] == 0);
+                    cms[loop] = !(cchecked[cls[loop].parsedCoord & 0xffff] || t[3] <1);
                     ctenseVals[loop] = t[0];
                 }
             }
@@ -450,7 +450,7 @@ public class PlaceUpdate {
                     chunkMark.add(rcr[relChunk]);
                 }
                 t = chunkVals[relChunk].computeIfAbsent(ls[loop], n -> new byte[]{126,126,0,0,0,0,0,0,0,0,0,0,0});
-                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]==0);
+                ms[loop] =!(checked[(relChunk<<16)|(ls[loop].parsedCoord & 0xffff)]||t[3]<1);
                 tenseVals[loop]=t[0];
             }
             valref = DataUtil.lowestTensile(tenseVals);

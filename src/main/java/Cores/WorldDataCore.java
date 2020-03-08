@@ -11,7 +11,13 @@ import Storage.ChunkValues;
 import Storage.FastUpdateHandler;
 import Storage.KryoIO;
 import Util.*;
-import it.unimi.dsi.fastutil.objects.*;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongBidirectionalIterator;
+import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongRBTreeSet;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
+import it.unimi.dsi.fastutil.shorts.Short2BooleanOpenHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -427,16 +433,21 @@ public class WorldDataCore {
     private final ObjectArrayFIFOQueue<ChunkCoord> terra_fileLoad = new ObjectArrayFIFOQueue<>(64);
     private final void queryTerraIO(){
         chunkValues.forEach((cc,cv)->{
+            Bukkit.broadcastMessage("checking chunk: "+ Coords.CHUNK_STRING(cc));
             if(cv.overrideUnload)cv.overrideUnload=false;
             if(cv.isLoaded) {
-                Object2BooleanOpenHashMap<Block> terra_Chunk = terra_IOCache.getOrDefault(cc, null);
+                Bukkit.broadcastMessage("Is loaded: "+ Coords.CHUNK_STRING(cc));
+                Short2BooleanOpenHashMap terra_Chunk = terra_IOCache.getOrDefault(cc, null);
                 if (terra_Chunk != null) {
-                    terra_Chunk.forEach((block,bool) -> {
-                        if (bool) {
-                            terraForm_IOEntry.enqueue(block);
-                            Bukkit.broadcastMessage("Adding to terraForm IO " + cache_Count);
+                    terra_Chunk.short2BooleanEntrySet().fastForEach((entry) -> {
+                        short block = entry.getShortKey();
+                        long global_coord=(((long)block&0xf00)<<32)|((cc.parsedCoord<<4)&0x0fff00000)|((block&0x0f0)<<16)|((cc.parsedCoord<<4)&0x0fff0)|(block&0x0f);
+                        if (entry.getBooleanValue()) {
+                            terraForm_Cache.add(global_coord);
+                            Bukkit.broadcastMessage("Adding to terraForm main Cache from IO Cache " + cache_Count);
                         } else {
-                            terraDegen_IOEntry.enqueue(block);
+                            terraDegen_Cache.add(global_coord);
+                            Bukkit.broadcastMessage("Adding to terraDegen main Cache from IO Cache " + cache_Count);
                         }
                         --cache_Count;
                     });
@@ -449,7 +460,7 @@ public class WorldDataCore {
             }
         });
         if(!terra_fileLoad.isEmpty()){
-            kryoIO.terraFileLoad(terra_fileLoad,terraForm_IOEntry,terraDegen_IOEntry);
+            kryoIO.terraFileLoad(terra_fileLoad,terraForm_Cache,terraDegen_Cache);
         }else{
             Bukkit.broadcastMessage("No Files Cached");
         }
@@ -457,21 +468,18 @@ public class WorldDataCore {
 
     //Async Scheduled stuff
     private XRSR128pRand random = new XRSR128pRand(ThreadLocalRandom.current().nextLong()*System.currentTimeMillis(),System.nanoTime()*System.currentTimeMillis());
+    private final DataUtil.XZRandomYComparator ylongComp = new DataUtil.XZRandomYComparator(chunkValues);
     public final SpscLinkedQueue<Block> terraForm_Entry = new SpscLinkedQueue<>();
-    public final ObjectArrayFIFOQueue<Block> terraForm_IOEntry = new ObjectArrayFIFOQueue<>(256);
+    public final LongRBTreeSet terraForm_Cache = new LongRBTreeSet(ylongComp);
 
     public final SpscLinkedQueue<Block> terraDegen_Entry = new SpscLinkedQueue<>();
-    public final ObjectArrayFIFOQueue<Block> terraDegen_IOEntry = new ObjectArrayFIFOQueue<>(256);
+    public final LongLinkedOpenHashSet terraDegen_Cache = new LongLinkedOpenHashSet(256,0.9f);
     //max val per cache 65536
     //for both time tracks, if on scheduler update the time, not on chunk load, could represent non used chunk to cache
     public int cache_Count = 0;
-    public final Object2ObjectLinkedOpenHashMap<ChunkCoord, Object2BooleanOpenHashMap<Block>> terra_IOCache = new Object2ObjectLinkedOpenHashMap<>(16);
+    public final Object2ObjectLinkedOpenHashMap<ChunkCoord, Short2BooleanOpenHashMap> terra_IOCache = new Object2ObjectLinkedOpenHashMap<>(16);
     //scheduled editing collections, should have limited size by their offload factors
     public volatile boolean terraTaskActive=false;
-    public boolean[] form_degenTask = {false,false};
-    private final DataUtil.YBlockTerraSort yTSort = new DataUtil.YBlockTerraSort(chunkValues);
-    private final LinkedList<Block> terraDegen = new LinkedList<>();
-    private final ObjectArrayList<Block> terraForm = new ObjectArrayList<>(256);
 
 
     private int txl = 1000000;
@@ -488,103 +496,95 @@ public class WorldDataCore {
         }
     }
 
-    private final void startTerraGuardian(){
+    private final void startTerraGuardian() {
 
         Bukkit.broadcastMessage("Started Terra Guardian");
-        if(!terraTaskActive){
-            terraTaskActive=true;
+        if (!terraTaskActive) {
+            terraTaskActive = true;
             queryTerraIO();
             Block b;
-            int size, loop, g_time = WorldRules.G_TIME;
-            ObjectArrayList<Block> toDegen;
-            ObjectArrayList<Block> toForm;
+            int size, size_true, g_time = WorldRules.G_TIME;
             Bukkit.broadcastMessage("Pt1");
+            long global_coord;
+            boolean[] form_degenTask = {false, false};
+            int x,y,z;
             while ((b = terraDegen_Entry.relaxedPoll()) != null) {
-                if (updateCachePriority(b, g_time, Operator.DEGEN)) {
-                    terraDegen.add(b);
+                global_coord = (((long) (y=b.getY())) << 32) | ((x=b.getX()) << 16) | (z=b.getZ());
+                if (updateCachePriority(x,y,z, g_time, false)) {
+                    terraDegen_Cache.add(global_coord);
                 }
             }
             Bukkit.broadcastMessage("Pt2");
-            for (size = terraDegen_IOEntry.size(); --size >= 0; ) {
-                if (updateCachePriority((b = terraDegen_IOEntry.dequeue()), g_time, Operator.DEGEN)) {
-                    terraDegen.add(b);
-                }
-            }
-            Bukkit.broadcastMessage("Cache count after degen entries: "+cache_Count);
-            Bukkit.broadcastMessage("Pt3");
-            if (!terraDegen.isEmpty()) {
-                toDegen = new ObjectArrayList<>(terraDegen.size() >>>4);
-                ListIterator<Block> itr = terraDegen.listIterator();
-                while (itr.hasNext()) {
-                    b = itr.next();
-                    if (random.nextInt(10) < 2) {
-                        toDegen.add(b);
-                        itr.remove();
+            if(!terraDegen_Cache.isEmpty()) {
+                LongBidirectionalIterator litr = terraDegen_Cache.iterator();
+                LongArrayList toDegen = new LongArrayList((size = (int) ((size_true = terraDegen_Cache.size()) * 0.1f) + 1) + 1);
+                while (--size > -1 && --size_true > -1) {
+                    global_coord = litr.nextLong();
+                    Bukkit.broadcastMessage("Adding to terra degen from IO " + global_coord);
+                    if (random.nextInt(10) < 1) {
+                        if (updateCachePriority((int) ((global_coord >> 16) & 0x0ffff), (int) ((global_coord >> 32) & 0x0ff), (int) (global_coord & 0x0ffff), g_time, false)) {
+                            --size;
+                            toDegen.add(global_coord);
+                        }
+                        litr.remove();
                     }
                 }
                 if (!toDegen.isEmpty()) {
                     Bukkit.broadcastMessage("Starting Terra degen");
-                    form_degenTask[1]=true;
-                    new DegenBlocks(toDegen,this).runTaskTimer(i, 20, 2);
+                    form_degenTask[1] = true;
+                    new DegenBlocks(toDegen, this,form_degenTask).runTaskTimer(i, 20, 2);
                 }
-                itr = terraDegen.listIterator();
-                while (itr.hasNext()) {
-                    terraDegen_IOEntry.enqueue(itr.next());
-                    itr.remove();
-                }
-            } else {
-                Bukkit.broadcastMessage("Terra degen empty");
+            }else{
+                Bukkit.broadcastMessage("terra Degen Empty");
             }
+            Bukkit.broadcastMessage("Cache count after degen entries: " + cache_Count);
+            Bukkit.broadcastMessage("Pt3");
             while ((b = terraForm_Entry.relaxedPoll()) != null) {
-                if (updateCachePriority(b, g_time, Operator.FORM)) {
-                    terraForm.add(b);
+                global_coord = (((long) (y=b.getY())) << 32) | ((x=b.getX()) << 16) | (z=b.getZ());
+                if (updateCachePriority(x,y,z,g_time, true)) {
+                    terraForm_Cache.add(global_coord);
                 }
             }
-            for (size = terraForm_IOEntry.size(); --size > -1; ) {
-                Bukkit.broadcastMessage("Adding to terra form from IO");
-                if (updateCachePriority((b = terraForm_IOEntry.dequeue()), g_time, Operator.FORM)) {
-                    terraForm.add(b);
-                }
-            }
-            Bukkit.broadcastMessage("Cache count after form entries: "+cache_Count);
-            if (!terraForm.isEmpty()) {
-                Bukkit.broadcastMessage("Sorting Terra Form");
-                ObjectLists.shuffle(terraForm, random);
-                terraForm.unstableSort(yTSort);
-                loop = (int) ((size = terraForm.size()) * 0.9D) - 1;
-                toForm = new ObjectArrayList<>(size + 1);
-                Bukkit.broadcastMessage("Checking Terra Form");
-                while (--size >= loop) {
-//                b =terraForm.remove(loop);
-                    toForm.add(terraForm.pop());
+            if(!terraForm_Cache.isEmpty()) {
+                LongBidirectionalIterator litr = terraForm_Cache.iterator();
+                LongArrayList toForm = new LongArrayList((size = (int) ((size_true = terraForm_Cache.size()) * 0.1f) + 1) + 1);
+                while (size > 0 && --size_true > -1) {
+                    global_coord = litr.nextLong();
+                    Bukkit.broadcastMessage("Adding to terra form from IO " + global_coord);
+                    if (updateCachePriority((int) ((global_coord >> 16) & 0x0ffff), (int) ((global_coord >> 32) & 0x0ff), (int) (global_coord & 0x0ffff), g_time, true)) {
+                        --size;
+                        toForm.add(global_coord);
+                        litr.remove();
+                    }
                 }
                 if (!toForm.isEmpty()) {
                     Bukkit.broadcastMessage("Starting Terra Form");
-                    form_degenTask[0]=true;
-                    new FormBlocks(toForm, this, (size >> 11) + 2).runTaskTimer(i, 22, 3);
+                    form_degenTask[0] = true;
+                    new FormBlocks(toForm, this, form_degenTask, (size >> 11) + 2).runTaskTimer(i, 22, 3);
                 }
-                while(--size>-1) {
-                    terraForm_IOEntry.enqueueFirst(terraForm.pop());
-                }
+                Bukkit.broadcastMessage("Cache count after form entries: " + cache_Count);
             }
-        }/*else{
+            if(!form_degenTask[0]&&!form_degenTask[1])terraTaskActive=false;
+
+        /*else{
                 kryoIO.saveTerraCache(cache_Count-(int)(cache_Count*0.05F));
          }*/
-        if (cache_Count >= 50000) {
-            kryoIO.saveTerraCache((int) (cache_Count * 0.6666D));
+            if (cache_Count >= 50000) {
+                kryoIO.saveTerraCache((int) (cache_Count * 0.6666D));
+            }
+            Bukkit.broadcastMessage("Completing Cycle");
         }
-        Bukkit.broadcastMessage("Completing Cycle");
     }
 
-    private final boolean updateCachePriority(Block b, int g_time, Operator operator) {
-        int x=b.getX(),z=b.getZ();
-        LocalCoord lc = HyperKeys.localCoord[(b.getY() << 8) | (x << 28 >>> 28 << 4) | (z << 28 >>> 28)];
+    private final boolean updateCachePriority(int x,int y,int z, int g_time, boolean isForm) {
         assertLocalChunk_t(x>>4,z>>4);
+        short local =(short)((y <<8) | ((x&0x0f) << 4) | (z&0x0f));
+        LocalCoord lc = HyperKeys.localCoord[local&0x0ffff];
 //        Bukkit.broadcastMessage("Updating cache");
         if (tlocValues==null||!tlocValues.isLoaded) {
-            terra_IOCache.putIfAbsent(tchunkCoord,new Object2BooleanOpenHashMap<>(32,0.9f));
-            Object2BooleanOpenHashMap<Block> bq = terra_IOCache.getAndMoveToFirst(tchunkCoord);
-            bq.put(b, operator==Operator.FORM);
+            terra_IOCache.putIfAbsent(tchunkCoord,new Short2BooleanOpenHashMap(16,0.9f));
+            Short2BooleanOpenHashMap bq = terra_IOCache.getAndMoveToFirst(tchunkCoord);
+            bq.put(local,isForm);
             Bukkit.broadcastMessage("Block Cached in unloaded chunk");
 //            Bukkit.broadcastMessage("this shouldn't be called right now");
             ++cache_Count;
@@ -592,13 +592,9 @@ public class WorldDataCore {
         } else{
             byte[] ts = tlocValues.blockVals.get(lc);
             if(DataUtil.youngerThan(ts,g_time)){
-                if (Operator.FORM == operator) {
-                    Bukkit.broadcastMessage("Form Block Too Young");
-                    terraForm_IOEntry.enqueue(b);
-                } else {
-                    Bukkit.broadcastMessage("Degen Block Too Young");
-                    terraDegen_IOEntry.enqueue(b);
-                }
+                terra_IOCache.putIfAbsent(tchunkCoord,new Short2BooleanOpenHashMap(16,0.9f));
+                Short2BooleanOpenHashMap bq = terra_IOCache.getAndMoveToFirst(tchunkCoord);
+                bq.put(local,isForm);
                 return false;
             }else{
                 tlocValues.overrideUnload=true;
