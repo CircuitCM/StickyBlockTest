@@ -141,7 +141,7 @@ public class DataUtil {
                 ++currentHeight;
                 Ymin-=5;
                 while(--currentHeight>Ymin){
-                    blockData.put(HyperKeys.localCoord[(currentHeight<<8)|XZshift],new byte[]{0,0,127,-1,3,0,0,0,0,0,0,0,0});
+                    blockData.put(HyperKeys.localCoord[(currentHeight<<8)|XZshift],new byte[]{0,0,127,1,3,0,0,0,0,0,0,0,0});
                 }
             }
         }
@@ -158,9 +158,8 @@ public class DataUtil {
 
         @Override
         public int compare(long l, long l1) {
-
+            if(l==l1)return 0;
             long ly=(l>>>32),l1y=(l1>>>32);
-
             int x=(int)((l>>16)&0x0ffff), z=(int)(l&0x0ffff),x4=x>>4,z4=z>>4;
             if (txl != x4 || tzl != z4) {
                 txl = x4;
@@ -168,11 +167,11 @@ public class DataUtil {
                 ySlope= chunkValues.get(Coords.CHUNK(x4,z4)).ySlope;
             }
             ly = ly-ySlope[((x&0x0f)<<4)|(z&0x0f)];
-            int x1=(int)((l1>>16)&0x0ffff), z1=(int)(l1&0x0ffff), x14=x>>4,z14=z>>4;
-            if (txl != x14 || tzl != z14) {
-                txl = x14;
-                tzl = z14;
-                ySlope= chunkValues.get(Coords.CHUNK(x14,z14)).ySlope;
+            x=(int)((l1>>16)&0x0ffff); z=(int)(l1&0x0ffff); x4=x>>4; z4=z>>4;
+            if (txl != x4 || tzl != z4) {
+                txl = x4;
+                tzl = z4;
+                ySlope= chunkValues.get(Coords.CHUNK(x4,z4)).ySlope;
             }
             l1y = l1y-ySlope[((x&0x0f)<<4)|(z&0x0f)];
             if(ly<l1y){
@@ -181,14 +180,14 @@ public class DataUtil {
                 return 1;
             }else{
                 long s1 = 31*l;
-                for(int i=-1;++i<15;) {
+                for(int i=-1;++i<14;) {
                     s1 ^= l;
                     l = Long.rotateLeft(l, 24) ^ s1 ^ s1 << 16;
                     s1 = Long.rotateLeft(s1, 37);
                 }
                 long result = l + s1;
                 s1= 31*l1;
-                for(int i=-1;++i<15;) {
+                for(int i=-1;++i<14;) {
                     s1 ^= l1;
                     l1 = Long.rotateLeft(l1, 24) ^ s1 ^ s1 << 16;
                     s1 = Long.rotateLeft(s1, 37);

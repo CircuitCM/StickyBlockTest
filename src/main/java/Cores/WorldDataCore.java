@@ -26,13 +26,12 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jctools.maps.NonBlockingHashMap;
-import org.jctools.queues.SpscLinkedQueue;
+import org.jctools.queues.SpscChunkedArrayQueue;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.bukkit.Bukkit.broadcastMessage;
-import static org.bukkit.Bukkit.getScheduler;
+import static org.bukkit.Bukkit.*;
 
 public class WorldDataCore {
 
@@ -65,7 +64,7 @@ public class WorldDataCore {
         kryoIO.setTerraKryoIO(cache_Count,terra_IOCache);
         kryoIO.setWorldKryoIO(chunkValues);
         this.kryoIO=kryoIO;
-        HyperScheduler.tickingExecutor.submit(this::startTerraGuardian,40000,14999);
+        HyperScheduler.tickingExecutor.submit(this::startTerraGuardian,30000,14999);
     }
 
     private final void resetDataStructures(Operator resetType) {
@@ -128,12 +127,12 @@ public class WorldDataCore {
             return;
         }
         if(b.getType()!=WorldRules.TERRAIN_TYPE[bD[4]]) {
-            if(stlocValues.get(HyperKeys.localCoord[(lc.parsedCoord&0xffff)-256])[3]==0){
+            if(stlocValues.get(HyperKeys.localCoord[(lc.parsedCoord&0xffff)-256])[3]<1){
                 Bukkit.broadcastMessage("Block below == air");
+                Bukkit.broadcastMessage(b.getLocation().toString());
                 terraForm_Entry.relaxedOffer(b);
-                byte[] bt;
-                while((bt=stlocValues.get(lc=HyperKeys.localCoord[(lc.parsedCoord&0xffff)-256]))[4]>0){
-                    if(bt[3]==0)terraForm_Entry.relaxedOffer(b.getRelative(0,(lc.parsedCoord>>>8)-y,0));
+                while(stlocValues.get(lc=HyperKeys.localCoord[(lc.parsedCoord&0xffff)-256])[4]!=3){
+                    terraForm_Entry.relaxedOffer(b.getRelative(0,(lc.parsedCoord>>>8)-y,0));
                 }
             }else if ((bD[2] -= WorldRules.ATROPHY_DAMAGE) <= 0) {
                 bD[2]=1;bD[3] = 1;
@@ -224,12 +223,12 @@ public class WorldDataCore {
     }
 
     public void blockBreak(LocalCoord lc,ChunkCoord cc,HashMap<LocalCoord,byte[]> locValues) {
-        int rx,rz, x=cc.parsedCoord>>16,z=cc.parsedCoord<<16>>16,relchunk,plc /*local coord*/; World w = WorldRules.GAME_WORLD;
+        int rx,rz, x=cc.parsedCoord>>16,z=cc.parsedCoord&0x0ffff,relchunk,plc /*local coord*/; World w = WorldRules.GAME_WORLD;
         bu.breakChecks(lc, cc,locValues);
         pu.reUpdate(cc);
 
         boolean hasFall=false;
-        ArrayList<Block> blocksToFall = new ArrayList<>(FallQuery[40].size()+6);
+        ArrayList<Block> blocksToFall = new ArrayList<>(FallQuery[40].size()+2);
 
         Block b;
         for(byte[] cmark : chunkMark) {
@@ -294,7 +293,7 @@ public class WorldDataCore {
     }
 
     public void blockPlace(Block b,LocalCoord lc,ChunkCoord cc, HashMap<LocalCoord,byte[]> locValues) {
-        int rx,rz, x=b.getX(),z=b.getZ(),relchunk, plc /*local coord*/,current=WorldRules.G_TIME;
+        int rx,rz, x=b.getX(),z=b.getZ(),relchunk, plc /*local coord*/,current=WorldRules.G_TIME; World world = getWorld("world");
         /*byte[] type = WorldRules.BLOCK_DEFAULTS.get(b.getType());
         if(type==null)type=WorldRules.DEFAULT_BLOCK;*/
         byte[] t = locValues.computeIfAbsent(lc, nc-> new byte[]{126,126,1,1,0,0,0,0,0,0,0,0,0});
@@ -319,7 +318,7 @@ public class WorldDataCore {
             if (!FallQuery[relchunk].isEmpty()) {
                 for (LocalCoord localCoord : FallQuery[relchunk]) {
                     plc = localCoord.parsedCoord;
-                    b = WorldRules.GAME_WORLD.getBlockAt(rx|(plc<<24>>>28),plc>>>8,rz|(plc<<28>>>28));
+                    b = world.getBlockAt(rx|(plc<<24>>>28),plc>>>8,rz|(plc<<28>>>28));
                     if(b.getType()==Material.AIR) airError(b,relchunk,localCoord);
                     else blocksToFall.add(b);
 //                        broadcastMessage("Data at: x "+b.getX()+" y "+b.getY()+" z "+b.getZ()+" relchunk: "+ (rx)+" "+(rz));
@@ -345,7 +344,7 @@ public class WorldDataCore {
     }
 
     private void injectFallingBlocks(ArrayList<Block> blocks){
-        int size=blocks.size(), loop; Block block; Location l; Material m; byte d; World w= Bukkit.getWorld(WorldRules.WORLD_ID);
+        int size=blocks.size(), loop; Block block; Location l; Material m; byte d; World w= Bukkit.getWorld("world");
 
         if(size>1) blocks.sort(sortBlocksY);
         final FallingBlock[] fallingBlocks = new FallingBlock[size];
@@ -441,7 +440,7 @@ public class WorldDataCore {
                 if (terra_Chunk != null) {
                     terra_Chunk.short2BooleanEntrySet().fastForEach((entry) -> {
                         short block = entry.getShortKey();
-                        long global_coord=(((long)block&0xf00)<<32)|((cc.parsedCoord<<4)&0x0fff00000)|((block&0x0f0)<<16)|((cc.parsedCoord<<4)&0x0fff0)|(block&0x0f);
+                        long global_coord=((((long)block)&0xf00)<<32)|((cc.parsedCoord<<4)&0x0fff0fff0)|((block&0x0f0)<<12)|(block&0x0f);
                         if (entry.getBooleanValue()) {
                             terraForm_Cache.add(global_coord);
                             Bukkit.broadcastMessage("Adding to terraForm main Cache from IO Cache " + cache_Count);
@@ -469,10 +468,10 @@ public class WorldDataCore {
     //Async Scheduled stuff
     private XRSR128pRand random = new XRSR128pRand(ThreadLocalRandom.current().nextLong()*System.currentTimeMillis(),System.nanoTime()*System.currentTimeMillis());
     private final DataUtil.XZRandomYComparator ylongComp = new DataUtil.XZRandomYComparator(chunkValues);
-    public final SpscLinkedQueue<Block> terraForm_Entry = new SpscLinkedQueue<>();
+    public final SpscChunkedArrayQueue<Block> terraForm_Entry = new SpscChunkedArrayQueue<>(32,1073741824);
     public final LongRBTreeSet terraForm_Cache = new LongRBTreeSet(ylongComp);
 
-    public final SpscLinkedQueue<Block> terraDegen_Entry = new SpscLinkedQueue<>();
+    public final SpscChunkedArrayQueue<Block> terraDegen_Entry = new SpscChunkedArrayQueue<>(32,1073741824);
     public final LongLinkedOpenHashSet terraDegen_Cache = new LongLinkedOpenHashSet(256,0.9f);
     //max val per cache 65536
     //for both time tracks, if on scheduler update the time, not on chunk load, could represent non used chunk to cache
@@ -512,15 +511,16 @@ public class WorldDataCore {
                 global_coord = (((long) (y=b.getY())) << 32) | ((x=b.getX()) << 16) | (z=b.getZ());
                 if (updateCachePriority(x,y,z, g_time, false)) {
                     terraDegen_Cache.add(global_coord);
+                    Bukkit.broadcastMessage("adding to terra Degen "+ x+" "+y+" "+z);
                 }
             }
             Bukkit.broadcastMessage("Pt2");
             if(!terraDegen_Cache.isEmpty()) {
                 LongBidirectionalIterator litr = terraDegen_Cache.iterator();
                 LongArrayList toDegen = new LongArrayList((size = (int) ((size_true = terraDegen_Cache.size()) * 0.1f) + 1) + 1);
-                while (--size > -1 && --size_true > -1) {
+                while (size > -1 && --size_true > -1) {
                     global_coord = litr.nextLong();
-                    Bukkit.broadcastMessage("Adding to terra degen from IO " + global_coord);
+                    Bukkit.broadcastMessage("Adding to terra degen " + global_coord);
                     if (random.nextInt(10) < 1) {
                         if (updateCachePriority((int) ((global_coord >> 16) & 0x0ffff), (int) ((global_coord >> 32) & 0x0ff), (int) (global_coord & 0x0ffff), g_time, false)) {
                             --size;

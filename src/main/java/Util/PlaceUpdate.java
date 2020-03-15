@@ -5,7 +5,6 @@ import PositionalKeys.LocalCoord;
 import Settings.WorldRules;
 import Storage.ChunkValues;
 import Storage.FastUpdateHandler;
-import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.jctools.maps.NonBlockingHashMap;
@@ -52,7 +51,7 @@ public class PlaceUpdate {
     // will continue updating relatives
     private final boolean[] ms = new boolean[6];
 
-    public void placeChecks(LocalCoord lc, ChunkCoord cc, HashMap<LocalCoord,byte[]> localValues) {
+    public final void placeChecks(LocalCoord lc, ChunkCoord cc, HashMap<LocalCoord,byte[]> localValues) {
 
         byte loop;
         byte valref;
@@ -401,8 +400,8 @@ public class PlaceUpdate {
         while(!coordQ.isEmpty()) {
 
             l = coordQ.poll(); r = chunkRef.poll(); parsedCoord = l.parsedCoord; xc = r[0]; zc = r[1];
-            if(xc>6||xc<2) Bukkit.broadcastMessage("xc out of bounds! reupdate "+ xc);
-            if(zc>6||zc<2)Bukkit.broadcastMessage("zc out of bounds! reupdate "+ zc);
+            /*if(xc>6||xc<2) Bukkit.broadcastMessage("xc out of bounds! reupdate "+ xc);
+            if(zc>6||zc<2)Bukkit.broadcastMessage("zc out of bounds! reupdate "+ zc);*/
             //z pos get
             if(parsedCoord<<28>>>28==15){
                 ls[0]= localCoord[(parsedCoord<<16>>>24<<8)|(parsedCoord<<24>>>28<<4)];

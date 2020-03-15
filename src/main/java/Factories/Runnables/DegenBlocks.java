@@ -25,9 +25,9 @@ public class DegenBlocks extends BukkitRunnable {
 
     @Override
     public void run() {
-        if (loop >= SIZE) {
-            active_tasks[0] = false;
-            if (!active_tasks[1]) {
+        if (++loop >= SIZE) {
+            active_tasks[1] = false;
+            if (!active_tasks[0]) {
                 worldDataCore.terraTaskActive = false;
             }
             this.cancel();

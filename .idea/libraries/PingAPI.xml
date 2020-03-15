@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="PingAPI">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../Plugin APIs javadocs/PingAPI.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

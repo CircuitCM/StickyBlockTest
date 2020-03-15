@@ -191,7 +191,7 @@ public class BlockEvents implements Listener {
             if (x_xl != xset || x_zl != zset) {
                 x_xl = xset;
                 x_zl = zset;
-                x_chunkCoord = new ChunkCoord(xset, zset);
+                x_chunkCoord = Coords.CHUNK(xset, zset);
 //                if(chunkValues.isEmpty())return;
                 ChunkValues cv = chunkValues.get(x_chunkCoord);
                 if (cv == null) return;

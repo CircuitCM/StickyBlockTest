@@ -5,7 +5,6 @@ import Settings.WorldRules;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.block.Block;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class FormBlocks extends BukkitRunnable {
@@ -35,7 +34,7 @@ public class FormBlocks extends BukkitRunnable {
             }
             this.cancel();
         }else {
-            Block b; Chunk c;
+            Chunk c;
             /*int unloadLoop;*/
             long global_coord;
             int x,y,z;

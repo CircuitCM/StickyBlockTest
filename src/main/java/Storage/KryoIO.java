@@ -287,9 +287,10 @@ public class KryoIO {
             }
             byte[] bytes = input.getBuffer();
             int size = bytes.length;
+            byte xz; long global_coord;
             for(int i=0; i<=size;i+=3){
-                short block = (short)((bytes[i]<<8)|bytes[i+1]);
-                long global_coord=(((long)block&0xf00)<<32)|((cc.parsedCoord<<4)&0x0fff00000)|((block&0x0f0)<<16)|((cc.parsedCoord<<4)&0x0fff0)|(block&0x0f);
+                xz = bytes[i+1];
+                global_coord=(((long)bytes[i])<<32)|((cc.parsedCoord<<4)&0x0fff0fff0)|((xz&0x0f0)<<12)|(xz&0x0f);
                 if(bytes[i+2]==1){
                     terraForm_Cache.add(global_coord);
                 }else{

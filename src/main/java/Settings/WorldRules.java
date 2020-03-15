@@ -113,6 +113,7 @@ public final class WorldRules {
     /* type variables - 1 load max, 2 health max, 3 load binary shift multiple, */
 
     static{
+        WORLD_ID=Bukkit.getWorld("world").getUID();
         GAME_WORLD=Bukkit.getWorld("world");
     }
 
